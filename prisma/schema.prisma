@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  name           String
+  passwordHash   String   @map("password_hash")
+  role           String   @default("user")
+  points         Int      @default(0)
+  totalEarned    Int      @default(0) @map("total_earned")
+  equippedMedals String   @default("[]") @map("equipped_medals")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  posts              Post[]
+  comments           Comment[]
+  votes              Vote[]
+  trackedSatellites  TrackedSatellite[]
+  notifications      Notification[]
+  purchases          Purchase[]
+  quizAttempts       QuizAttempt[]
+
+  @@map("users")
+}
+
+model Post {
+  id         String   @id @default(uuid())
+  authorId   String   @map("author_id")
+  authorName String   @map("author_name")
+  title      String
+  body       String
+  tags       String   @default("[]")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  author   User      @relation(fields: [authorId], references: [id])
+  comments Comment[]
+
+  @@map("posts")
+}
+
+model Comment {
+  id         String   @id @default(uuid())
+  postId     String   @map("post_id")
+  authorId   String   @map("author_id")
+  authorName String   @map("author_name")
+  body       String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+
+  @@map("comments")
+}
+
+model Vote {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  targetId   String   @map("target_id")
+  targetType String   @map("target_type")
+  vote       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, targetId])
+  @@map("votes")
+}
+
+model TrackedSatellite {
+  userId      String @map("user_id")
+  satelliteId String @map("satellite_id")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@id([userId, satelliteId])
+  @@map("tracked_satellites")
+}
+
+model TleCache {
+  noradId   Int      @id @map("norad_id")
+  name      String
+  line1     String
+  line2     String
+  satGroup  String   @map("sat_group")
+  fetchedAt DateTime @default(now()) @map("fetched_at")
+
+  @@index([satGroup])
+  @@map("tle_cache")
+}
+
+model SdgCache {
+  id            String   @id @default(uuid())
+  region        String
+  indicatorCode String   @map("indicator_code")
+  year          Int
+  value         Float?
+  fetchedAt     DateTime @default(now()) @map("fetched_at")
+
+  @@unique([region, indicatorCode, year])
+  @@map("sdg_cache")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String
+  title     String
+  body      String
+  metadata  String   @default("{}")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model Purchase {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  itemType    String   @map("item_type")
+  itemId      String   @map("item_id")
+  cost        Int
+  purchasedAt DateTime @default(now()) @map("purchased_at")
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("purchases")
+}
+
+model ArticleCache {
+  id        String   @id @default(uuid())
+  sourceId  String   @unique @map("source_id")
+  title     String
+  abstract  String
+  tags      String   @default("[]")
+  source    String
+  date      String
+  readTime  String
+  category  String
+  url       String
+  fetchedAt DateTime @default(now()) @map("fetched_at")
+
+  @@index([category])
+  @@index([fetchedAt])
+  @@map("article_cache")
+}
+
+model PaperCache {
+  id        String   @id @default(uuid())
+  sourceId  String   @unique @map("source_id")
+  title     String
+  authors   String
+  journal   String
+  year      Int
+  abstract  String
+  doi       String
+  apiSource String   @map("api_source")
+  fetchedAt DateTime @default(now()) @map("fetched_at")
+
+  @@index([apiSource])
+  @@index([fetchedAt])
+  @@map("paper_cache")
+}
+
+model QuizAttempt {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  sdgNumber     Int      @map("sdg_number")
+  score         Int
+  total         Int
+  pointsAwarded Int      @default(0) @map("points_awarded")
+  createdAt     DateTime @default(now()) @map("created_at")
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("quiz_attempts")
+}

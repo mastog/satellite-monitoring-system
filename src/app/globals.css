@@ -1,0 +1,633 @@
+@import "tailwindcss";
+
+/* Defines the global design tokens, shared motion, and reusable surface styles for the application. */
+
+@theme inline {
+  --color-background: var(--void-black);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-orbitron);
+  --font-mono: var(--font-fira-code);
+}
+
+:root {
+  /* Stores the base background and panel colors used by the default interface theme. */
+  --void-black: #06080d;
+  --deep-space: #0b0f18;
+  --space-navy: #0f1623;
+  --panel-base: #111927;
+  --panel-elevated: #162032;
+  --panel-glass: rgba(11, 15, 24, 0.72);
+  --panel-glass-hover: rgba(22, 32, 50, 0.82);
+
+  /* Stores the currently selected accent color so components can inherit a consistent highlight hue. */
+  --accent: #00e5ff;
+  --accent-dim: color-mix(in srgb, var(--accent) 15%, transparent);
+  --accent-glow: color-mix(in srgb, var(--accent) 40%, transparent);
+
+  /* Stores fixed neon colors that remain available even when the active accent changes. */
+  --neon-cyan: #00e5ff;
+  --neon-cyan-dim: rgba(0, 229, 255, 0.15);
+  --neon-cyan-glow: rgba(0, 229, 255, 0.4);
+  --neon-orange: #ff6b2c;
+  --neon-orange-dim: rgba(255, 107, 44, 0.15);
+  --neon-orange-glow: rgba(255, 107, 44, 0.4);
+  --holo-purple: #b44aff;
+  --holo-purple-dim: rgba(180, 74, 255, 0.15);
+  --neon-green: #39ff7f;
+  --neon-green-dim: rgba(57, 255, 127, 0.15);
+  --neon-red: #ff3a5c;
+  --neon-red-dim: rgba(255, 58, 92, 0.15);
+  --neon-gold: #ffd54f;
+
+  /* Stores the shared text colors used across headings, labels, and body copy. */
+  --text-primary: #e4eaf4;
+  --text-secondary: #8a9bbd;
+  --text-dim: rgba(138, 155, 189, 0.65);
+  --text-accent: var(--accent);
+
+  /* Stores accent-aware structural colors such as borders, grid lines, and scanlines. */
+  --border-subtle: color-mix(in srgb, var(--accent) 8%, transparent);
+  --border-active: color-mix(in srgb, var(--accent) 25%, transparent);
+  --grid-line: color-mix(in srgb, var(--accent) 4%, transparent);
+  --scanline-color: color-mix(in srgb, var(--accent) 3%, transparent);
+
+  /* Stores reusable glass-surface blur, border, and shadow values. */
+  --glass-blur: 18px;
+  --glass-border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  --glass-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 1px color-mix(in srgb, var(--accent) 10%, transparent);
+
+  /* Stores easing curves reused by interactive transitions throughout the app. */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Overrides the active accent token when the root element selects an alternate accent theme. */
+
+[data-accent="orange"] {
+  --accent: #ff6b2c;
+}
+[data-accent="purple"] {
+  --accent: #b44aff;
+}
+[data-accent="green"] {
+  --accent: #39ff7f;
+}
+[data-accent="rose"] {
+  --accent: #ff3a8c;
+}
+
+/* Establishes the global reset, scrollbar styling, and document defaults. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-elevated) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--panel-elevated);
+  border-radius: 3px;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+  font-size: calc(18px * var(--font-scale, 1));
+  background: var(--void-black);
+  color: var(--text-primary);
+}
+
+html {
+  --font-scale: var(--ui-scale, 1);
+}
+
+/* Draws the animated grid backdrop behind the main application shell. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+  animation: gridDrift 60s linear infinite;
+}
+
+/* Adds a subtle scanline layer that gives the UI a screen-like texture. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--scanline-color) 2px,
+    var(--scanline-color) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+@keyframes gridDrift {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(60px, 60px);
+  }
+}
+
+/* Defines the shared glass-panel container used by cards and major dashboard surfaces. */
+.glass-panel {
+  background: var(--panel-glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-glow) 50%,
+    transparent 100%
+  );
+  opacity: 0.6;
+}
+
+/* Styles the compact panel headers and their accent indicator dot. */
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.panel-header .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+  50% {
+    opacity: 0.5;
+    box-shadow: 0 0 2px var(--accent-glow);
+  }
+}
+
+/* Provides reusable neon glow treatments for highlighted text. */
+.text-glow-cyan {
+  color: var(--neon-cyan);
+  text-shadow:
+    0 0 12px var(--neon-cyan-glow),
+    0 0 40px rgba(0, 229, 255, 0.1);
+}
+
+.text-glow-orange {
+  color: var(--neon-orange);
+  text-shadow:
+    0 0 12px var(--neon-orange-glow),
+    0 0 40px rgba(255, 107, 44, 0.1);
+}
+
+.text-glow-accent {
+  color: var(--accent);
+  text-shadow:
+    0 0 12px var(--accent-glow),
+    0 0 40px var(--accent-dim);
+}
+
+/* Provides the moving holographic sheen used on selected glass surfaces. */
+.holo-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.holo-shimmer::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 40%,
+    color-mix(in srgb, var(--accent) 3%, transparent) 45%,
+    rgba(180, 74, 255, 0.03) 50%,
+    color-mix(in srgb, var(--accent) 3%, transparent) 55%,
+    transparent 60%
+  );
+  animation: holoSweep 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes holoSweep {
+  0% {
+    transform: rotate(0deg) translate(-30%, -30%);
+  }
+  50% {
+    transform: rotate(0deg) translate(30%, 30%);
+  }
+  100% {
+    transform: rotate(0deg) translate(-30%, -30%);
+  }
+}
+
+/* Styles the primary sci-fi button treatment used across the interface. */
+.cyber-btn {
+  position: relative;
+  padding: 8px 20px;
+  background: var(--accent-dim);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s var(--ease-out-expo);
+  overflow: hidden;
+}
+
+.cyber-btn:hover {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: var(--accent);
+  box-shadow:
+    0 0 20px var(--accent-dim),
+    inset 0 0 20px var(--accent-dim);
+}
+
+.cyber-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--accent) 10%, transparent),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.cyber-btn:hover::before {
+  left: 100%;
+}
+
+/* Styles large numeric stat values so dashboard metrics align consistently. */
+.stat-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Defines the upward streaming animation used by telemetry-style effects. */
+@keyframes dataStream {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+/* Defines low-contrast ambient glows that deepen the page atmosphere. */
+.ambient-glow-tl {
+  position: fixed;
+  top: -200px;
+  left: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent) 4%, transparent) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ambient-glow-br {
+  position: fixed;
+  bottom: -200px;
+  right: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(
+    circle,
+    rgba(180, 74, 255, 0.03) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Defines the optional noise overlay used to break up large flat surfaces. */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Defines the fixed SDG accent colors used by sustainability-related views. */
+.sdg-6 {
+  --sdg-color: #26bde2;
+}
+.sdg-9 {
+  --sdg-color: #fd6925;
+}
+.sdg-11 {
+  --sdg-color: #f99d26;
+}
+.sdg-12 {
+  --sdg-color: #bf8b2e;
+}
+.sdg-13 {
+  --sdg-color: #3f7e44;
+}
+.sdg-15 {
+  --sdg-color: #56c02b;
+}
+
+/* Collects generic entrance and emphasis keyframes reused by multiple components. */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes glitchFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  93% {
+    opacity: 0.8;
+    transform: translateX(-1px);
+  }
+  94% {
+    opacity: 1;
+    transform: translateX(1px);
+  }
+  95% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes borderPulse {
+  0%,
+  100% {
+    border-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+  50% {
+    border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+}
+
+/* Styles the custom range input used for interface scale controls. */
+.ui-scale-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--panel-elevated);
+  outline: none;
+  cursor: pointer;
+}
+
+.ui-scale-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 8px var(--accent-glow),
+    0 0 2px var(--accent);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.ui-scale-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+  box-shadow:
+    0 0 14px var(--accent-glow),
+    0 0 4px var(--accent);
+}
+
+.ui-scale-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 8px var(--accent-glow),
+    0 0 2px var(--accent);
+  border: none;
+  cursor: pointer;
+}
+
+.ui-scale-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--panel-elevated);
+}
+
+/* Styles the compact HUD surface used by orbital tracking overlays. */
+.orbital-hud {
+  background: rgba(11, 15, 24, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 10px;
+}
+
+.orbital-hud::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-glow) 50%,
+    transparent 100%
+  );
+  opacity: 0.6;
+}
+
+/* Defines decorative corner brackets that can be attached to panel edges. */
+.corner-brackets {
+}
+
+.corner-brackets::before,
+.corner-brackets::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+
+.corner-brackets::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--accent-glow);
+  border-left: 2px solid var(--accent-glow);
+  border-top-left-radius: 4px;
+}
+
+.corner-brackets::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--accent-glow);
+  border-right: 2px solid var(--accent-glow);
+  border-bottom-right-radius: 4px;
+}
+
+/* Defines the pulse animation used by active tracking controls. */
+@keyframes trackingPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(57, 255, 127, 0.3),
+      0 0 12px rgba(57, 255, 127, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(57, 255, 127, 0),
+      0 0 20px rgba(57, 255, 127, 0.15);
+  }
+}
+
+.tracking-pulse {
+  animation: trackingPulse 2s ease-in-out infinite;
+}
+
+/* Defines the ring pulse used by active playback controls. */
+@keyframes playRingPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(57, 255, 127, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(57, 255, 127, 0);
+  }
+}
+
+.play-ring-pulse {
+  animation: playRingPulse 1.5s ease-in-out infinite;
+}
+
+/* Styles the small live-status indicator dot. */
+@keyframes liveDotPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.75);
+  }
+}
+
+.live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--neon-green);
+  box-shadow: 0 0 6px rgba(57, 255, 127, 0.5);
+  animation: liveDotPulse 1.5s ease-in-out infinite;
+}
+
+/* Styles the active glow state for playback-speed buttons. */
+.speed-btn-active {
+  background: var(--neon-cyan-dim);
+  color: var(--neon-cyan);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  text-shadow: 0 0 8px var(--neon-cyan-glow);
+}
