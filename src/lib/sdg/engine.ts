@@ -586,14 +586,25 @@ export async function analyzeRegionAsync(
 
     const indicators: SDGIndicator[] = templates.map((t, i) => {
       if (sdgApiData) {
+        // Ensures SDG 9 connectivity uses the internet-access indicator instead
+        // of the patents proxy that previously occupied the same template slot.
+        const connectivityData =
+          t.id === "connectivity"
+            ? sdgApiData.find(
+                (entry) => entry.indicatorCode === "IT.NET.USER.ZS"
+              )
+            : null;
         const realData = sdgApiData[i];
-        if (realData && realData.year !== null) {
+        const resolvedData = connectivityData ?? realData;
+        if (resolvedData && resolvedData.year !== null) {
           const indicatorId =
-            WB_TO_INDICATOR_ID[realData.indicatorCode] || t.id;
+            t.id === "connectivity"
+              ? t.id
+              : WB_TO_INDICATOR_ID[resolvedData.indicatorCode] || t.id;
           return {
             ...t,
             id: indicatorId,
-            value: realData.normalizedScore,
+            value: resolvedData.normalizedScore,
             trend: "stable" as const,
           };
         }

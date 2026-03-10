@@ -3,6 +3,40 @@ import { autoTagText } from "@/lib/posts/autoTag";
 import type { Article, Paper } from "@/lib/content/data";
 
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+const ARTICLE_RETENTION_DAYS = 14;
+const ARTICLE_MAX_TOTAL = 18;
+const ARTICLE_MAX_PER_CATEGORY = 5;
+const ARTICLE_THEME_KEYWORDS = [
+  "satellite",
+  "space",
+  "orbit",
+  "orbital",
+  "earth observation",
+  "observation",
+  "remote sensing",
+  "sentinel",
+  "landsat",
+  "modis",
+  "viirs",
+  "sar",
+  "radar",
+  "imagery",
+  "telemetry",
+  "constellation",
+  "sdg",
+  "sustainable",
+  "sustainability",
+  "climate",
+  "environment",
+  "emissions",
+  "carbon",
+  "biodiversity",
+  "water",
+  "agriculture",
+  "disaster",
+  "infrastructure",
+  "innovation",
+];
 
 // Defines helper utilities used to normalize external article and paper data
 // before it is cached for the science views.
@@ -278,6 +312,137 @@ function hashString(s: string): string {
   return Math.abs(h).toString(36);
 }
 
+// Keeps only recent article dates so the science feed does not accumulate stale content.
+function articleCutoffDate(now: Date = new Date()): Date {
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - ARTICLE_RETENTION_DAYS);
+  cutoff.setHours(0, 0, 0, 0);
+  return cutoff;
+}
+
+// Parses YYYY-MM-DD article dates into UTC midnight values for consistent recency checks.
+function parseArticleDate(date: string): Date | null {
+  const parsed = new Date(`${date}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+// Scores how strongly an article matches the site's satellite and SDG mission themes.
+function scoreArticleRelevance(
+  article: Pick<Article, "title" | "abstract" | "tags" | "source" | "category">
+): number {
+  const haystack = [
+    article.title,
+    article.abstract,
+    article.source,
+    ...article.tags,
+    article.category,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  let score = 0;
+
+  for (const keyword of ARTICLE_THEME_KEYWORDS) {
+    if (haystack.includes(keyword)) score += 2;
+  }
+
+  if (
+    article.category === "earth-science" ||
+    article.category === "space-tech"
+  ) {
+    score += 4;
+  } else {
+    score += 3;
+  }
+
+  if (
+    haystack.includes("nasa") ||
+    haystack.includes("esa") ||
+    haystack.includes("noaa") ||
+    haystack.includes("copernicus")
+  ) {
+    score += 2;
+  }
+
+  return score;
+}
+
+// Enforces the science-lab feed policy: only recent, mission-relevant articles with a capped total volume.
+export function filterVisibleArticles(
+  articles: Article[],
+  now: Date = new Date()
+): Article[] {
+  const cutoff = articleCutoffDate(now);
+  const categoryCounts = new Map<Article["category"], number>();
+
+  return articles
+    .map((article) => {
+      const publishedAt = parseArticleDate(article.date);
+      const relevanceScore = scoreArticleRelevance(article);
+      return { article, publishedAt, relevanceScore };
+    })
+    .filter(
+      ({ publishedAt, relevanceScore }) =>
+        publishedAt !== null && publishedAt >= cutoff && relevanceScore > 0
+    )
+    .sort((a, b) => {
+      if (b.relevanceScore !== a.relevanceScore) {
+        return b.relevanceScore - a.relevanceScore;
+      }
+      return (
+        (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0)
+      );
+    })
+    .filter(({ article }) => {
+      const count = categoryCounts.get(article.category) ?? 0;
+      if (count >= ARTICLE_MAX_PER_CATEGORY) return false;
+      categoryCounts.set(article.category, count + 1);
+      return true;
+    })
+    .slice(0, ARTICLE_MAX_TOTAL)
+    .map(({ article }) => article);
+}
+
+// Removes expired and low-priority rows from the persisted article cache so the DB mirrors the visible feed policy.
+async function pruneArticleCache(now: Date): Promise<void> {
+  const cutoffIso = articleCutoffDate(now).toISOString().slice(0, 10);
+
+  await prisma.articleCache.deleteMany({
+    where: { date: { lt: cutoffIso } },
+  });
+
+  const cached = await prisma.articleCache.findMany({
+    orderBy: [{ date: "desc" }, { fetchedAt: "desc" }],
+  });
+
+  const visibleIds = new Set(
+    filterVisibleArticles(
+      cached.map((row) => ({
+        id: row.id,
+        title: row.title,
+        abstract: row.abstract,
+        tags: JSON.parse(row.tags) as string[],
+        source: row.source,
+        date: row.date,
+        readTime: row.readTime,
+        category: row.category as Article["category"],
+        url: row.url,
+      })),
+      now
+    ).map((article) => article.id)
+  );
+
+  const staleIds = cached
+    .filter((row) => !visibleIds.has(row.id))
+    .map((row) => row.id);
+
+  if (staleIds.length > 0) {
+    await prisma.articleCache.deleteMany({
+      where: { id: { in: staleIds } },
+    });
+  }
+}
+
 // Provides cache-freshness helpers so article and paper syncs can avoid unnecessary refetching.
 
 async function isCacheFresh(table: "article" | "paper"): Promise<boolean> {
@@ -363,6 +528,8 @@ async function fetchArticlesFromFeeds(): Promise<void> {
       }
     })
   );
+
+  await pruneArticleCache(now);
 }
 
 async function parseAndStoreRSSItems(
@@ -424,6 +591,19 @@ async function parseAndStoreRSSItems(
     const sourceId = `rss-${hashString(title + source)}`;
     const tags = autoTagText(title, abstract);
     const category = classifyCategory(title, abstract);
+    const article: Article = {
+      id: sourceId,
+      title,
+      abstract,
+      tags,
+      source,
+      date: pubDate,
+      readTime: estimateReadTime(title, abstract),
+      category,
+      url,
+    };
+
+    if (scoreArticleRelevance(article) <= 0) continue;
 
     await prisma.articleCache.upsert({
       where: { sourceId },
@@ -433,7 +613,7 @@ async function parseAndStoreRSSItems(
         tags: JSON.stringify(tags),
         source,
         date: pubDate,
-        readTime: estimateReadTime(title, abstract),
+        readTime: article.readTime,
         category,
         url,
         fetchedAt: now,
@@ -445,7 +625,7 @@ async function parseAndStoreRSSItems(
         tags: JSON.stringify(tags),
         source,
         date: pubDate,
-        readTime: estimateReadTime(title, abstract),
+        readTime: article.readTime,
         category,
         url,
         fetchedAt: now,
@@ -659,7 +839,7 @@ export async function getArticles(): Promise<{
     url: r.url,
   }));
 
-  return { articles, fetchedAt };
+  return { articles: filterVisibleArticles(articles), fetchedAt };
 }
 
 export async function getPapers(): Promise<{

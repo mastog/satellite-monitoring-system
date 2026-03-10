@@ -10,7 +10,7 @@ import { MMDLoader } from "@/lib/mmd/MMDLoader.js";
 import { MMDAnimationHelper } from "@/lib/mmd/MMDAnimationHelper.js";
 import { applyBakedFrame } from "@/lib/mmd/bakePhysics";
 import type { BakedAnimation } from "@/lib/mmd/bakePhysics";
-import { getBaked, bakeKey } from "@/lib/mmd/bakeCache";
+import { getOrFetchBaked, bakeKey } from "@/lib/mmd/bakeCache";
 import { MODELS } from "@/lib/mmd/modelData";
 import type { DanceItem } from "@/lib/mmd/modelData";
 import SvgIcon from "@/components/ui/SvgIcon";
@@ -152,7 +152,7 @@ function PMXModel({
         vmdClipCacheRef.current.set(initialVmd, vmdClip);
 
         if (dancingRef.current) {
-          const baked = await getBaked(bakeKey(characterId, initialVmd));
+          const baked = await getOrFetchBaked(bakeKey(characterId, initialVmd));
           if (cancelled) return;
           bakedRef.current = baked;
           helperRef.current = createDanceHelper(mesh, vmdClip);
@@ -215,7 +215,9 @@ function PMXModel({
       const vmdClip = vmdClipCacheRef.current.get(vmdPathRef.current);
       if (!vmdClip) return;
       const setup = async () => {
-        const baked = await getBaked(bakeKey(characterId, vmdPathRef.current));
+        const baked = await getOrFetchBaked(
+          bakeKey(characterId, vmdPathRef.current)
+        );
         if (cancelled) return;
         bakedRef.current = baked;
         helperRef.current = createDanceHelper(mesh, vmdClip);
@@ -248,7 +250,7 @@ function PMXModel({
       helperRef.current = null;
       restorePose(mesh);
       mesh.updateMatrixWorld(true);
-      const baked = await getBaked(bakeKey(characterId, vmdPath));
+      const baked = await getOrFetchBaked(bakeKey(characterId, vmdPath));
       if (cancelled) return;
       bakedRef.current = baked;
       if (dancingRef.current) {
@@ -283,7 +285,7 @@ function PMXModel({
   useEffect(() => {
     if (!bakeVersion || !dancingRef.current) return;
     let cancelled = false;
-    getBaked(bakeKey(characterId, vmdPathRef.current)).then((baked) => {
+    getOrFetchBaked(bakeKey(characterId, vmdPathRef.current)).then((baked) => {
       if (!cancelled) bakedRef.current = baked;
     });
     return () => {

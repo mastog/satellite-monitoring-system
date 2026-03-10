@@ -10,6 +10,7 @@ const DB_NAME = "sms-bake-cache";
 const DB_VERSION = 1;
 const STORE_NAME = "bakes";
 const VERSION_KEY = "__bake_version__";
+const REMOTE_BAKE_BASE_PATH = "/mmd-bakes";
 
 /** Defines the serializable cache record stored in IndexedDB. */
 interface StoredBake {
@@ -19,6 +20,19 @@ interface StoredBake {
   physicsBoneNames: string[];
   positions: ArrayBuffer;
   quaternions: ArrayBuffer;
+}
+
+/**
+ * Defines the JSON payload format used when baked animations are hosted by the
+ * server instead of being generated on each client.
+ */
+export interface SerializedBake {
+  fps: number;
+  totalFrames: number;
+  duration: number;
+  physicsBoneNames: string[];
+  positions: number[];
+  quaternions: number[];
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -114,6 +128,74 @@ export async function getAllKeys(): Promise<Set<string>> {
 // Builds the stable cache key used for one character-and-animation combination.
 export function bakeKey(charId: string, animId: string): string {
   return `${charId}::${animId}`;
+}
+
+// Converts an in-memory bake into the JSON shape used for server-hosted cache files.
+export function serializeBakedAnimation(
+  baked: BakedAnimation
+): SerializedBake {
+  return {
+    fps: baked.fps,
+    totalFrames: baked.totalFrames,
+    duration: baked.duration,
+    physicsBoneNames: baked.physicsBoneNames,
+    positions: Array.from(baked.positions),
+    quaternions: Array.from(baked.quaternions),
+  };
+}
+
+// Rebuilds typed arrays after a bake payload has been downloaded from the server.
+export function deserializeBakedAnimation(
+  stored: SerializedBake
+): BakedAnimation {
+  return {
+    fps: stored.fps,
+    totalFrames: stored.totalFrames,
+    duration: stored.duration,
+    physicsBoneNames: stored.physicsBoneNames,
+    positions: new Float32Array(stored.positions),
+    quaternions: new Float32Array(stored.quaternions),
+  };
+}
+
+// Encodes cache keys into filename-safe IDs so baked payloads can be stored in public assets.
+export function bakeAssetFileName(key: string): string {
+  return `${btoa(key)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "")}.json`;
+}
+
+// Downloads one baked animation from the server when a precomputed payload exists there.
+export async function fetchRemoteBaked(
+  key: string
+): Promise<BakedAnimation | null> {
+  const response = await fetch(
+    `${REMOTE_BAKE_BASE_PATH}/${bakeAssetFileName(key)}`,
+    {
+      cache: "force-cache",
+    }
+  );
+  if (!response.ok) return null;
+  const payload = (await response.json()) as SerializedBake;
+  return deserializeBakedAnimation(payload);
+}
+
+// Reuses local cached bakes first, then hydrates IndexedDB from the server-hosted payload when available.
+export async function getOrFetchBaked(
+  key: string
+): Promise<BakedAnimation | null> {
+  const local = await getBaked(key);
+  if (local) return local;
+
+  try {
+    const remote = await fetchRemoteBaked(key);
+    if (!remote) return null;
+    await putBaked(key, remote);
+    return remote;
+  } catch {
+    return null;
+  }
 }
 
 /** Deletes a single cached bake entry. */

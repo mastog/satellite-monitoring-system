@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getArticles } from "@/lib/science/syncArticles";
+import {
+  filterVisibleArticles,
+  getArticles,
+} from "@/lib/science/syncArticles";
 import { MOCK_ARTICLES } from "@/lib/content/data";
 
 export async function GET(req: NextRequest) {
@@ -10,7 +13,9 @@ export async function GET(req: NextRequest) {
     const { articles, fetchedAt } = await getArticles();
 
     // Fallback to mock data if DB is empty
-    const data = articles.length > 0 ? articles : MOCK_ARTICLES;
+    const data = filterVisibleArticles(
+      articles.length > 0 ? articles : MOCK_ARTICLES
+    );
     const source = articles.length > 0 ? "api" : "mock";
 
     const filtered = category
@@ -25,9 +30,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error("Science articles API error:", err);
+    const fallback = filterVisibleArticles(MOCK_ARTICLES);
     return NextResponse.json({
-      articles: MOCK_ARTICLES,
-      count: MOCK_ARTICLES.length,
+      articles: fallback,
+      count: fallback.length,
       fetchedAt: null,
       source: "mock",
     });

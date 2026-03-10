@@ -11,6 +11,7 @@ import { MMDLoader } from "./MMDLoader.js";
 import { loadAmmo } from "./loadAmmo";
 import { bakeAnimation } from "./bakePhysics";
 import {
+  getOrFetchBaked,
   getAllKeys,
   putBaked,
   bakeKey,
@@ -114,7 +115,8 @@ export async function preBakeAll(
 
   for (const char of characters) {
     for (const d of dances) {
-      if (!existingKeys.has(bakeKey(char.id, d.path))) {
+      const key = bakeKey(char.id, d.path);
+      if (!existingKeys.has(key)) {
         missing.push({ char, animId: d.path, animLabel: d.id });
       }
     }
@@ -123,18 +125,43 @@ export async function preBakeAll(
   // Exits immediately when every combination is already cached.
   if (missing.length === 0) return;
 
-  // Ensures Ammo.js is available before the first bake job starts.
-  await loadAmmo();
+  const unresolved: MissingEntry[] = [];
 
-  // Processes each missing bake on a fresh mesh instance so physics state never leaks across jobs.
-  const loader = new MMDLoader();
-
+  // Tries to hydrate each missing bake from server-hosted cache files before falling back to local baking.
   for (let i = 0; i < missing.length; i++) {
     const entry = missing[i];
 
     onProgress?.({
       current: i + 1,
       total: missing.length,
+      characterName: entry.char.name.en,
+      animLabel: entry.animLabel,
+    });
+
+    const hydrated = await getOrFetchBaked(
+      bakeKey(entry.char.id, entry.animId)
+    );
+
+    if (!hydrated) {
+      unresolved.push(entry);
+    }
+  }
+
+  // Skips the expensive physics pipeline entirely when every bake was downloaded from the server.
+  if (unresolved.length === 0) return;
+
+  // Ensures Ammo.js is available before the first bake job starts.
+  await loadAmmo();
+
+  // Processes each missing bake on a fresh mesh instance so physics state never leaks across jobs.
+  const loader = new MMDLoader();
+
+  for (let i = 0; i < unresolved.length; i++) {
+    const entry = unresolved[i];
+
+    onProgress?.({
+      current: i + 1,
+      total: unresolved.length,
       characterName: entry.char.name.en,
       animLabel: entry.animLabel,
     });
