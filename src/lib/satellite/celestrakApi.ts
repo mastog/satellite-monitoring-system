@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { parseTLEText, type TLERecord } from "./propagator";
+import {
+  isIntervalRefreshDue,
+  TLE_REFRESH_INTERVAL_MS,
+} from "@/lib/serverRefresh";
 
 // Lists the CelesTrak groups fetched by the application and the local satellite
 // type assigned to each group.
@@ -26,9 +30,6 @@ const CELESTRAK_GROUPS: { group: string; type: string; url: string }[] = [
   },
 ];
 
-// Defines how long a cached TLE payload is considered fresh before refresh.
-const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
-
 export interface TLECacheRecord {
   noradId: number;
   name: string;
@@ -54,14 +55,14 @@ function computeEpochAge(tle1: string): number {
   return (Date.now() - epochDate.getTime()) / 86400000;
 }
 
-// Checks whether the newest cached TLE row is still inside the freshness window.
-async function isCacheFresh(): Promise<boolean> {
+// Reads the latest TLE fetch time so the background refresh worker can decide
+// whether the server cache is due for another upstream sync.
+export async function getLatestTLEFetchTime(): Promise<Date | null> {
   const latest = await prisma.tleCache.findFirst({
     orderBy: { fetchedAt: "desc" },
     select: { fetchedAt: true },
   });
-  if (!latest) return false;
-  return Date.now() - latest.fetchedAt.getTime() < CACHE_TTL_MS;
+  return latest?.fetchedAt ?? null;
 }
 
 // Fetches one CelesTrak group, parses the TLE text, and upserts every record into the cache table.
@@ -104,24 +105,21 @@ async function fetchAndCacheGroup(
   return records;
 }
 
-// Returns cached TLE rows, refreshing the cache first when the current data is stale.
+// Refreshes the server-side TLE cache on the configured interval so request
+// handlers can serve stored records without contacting CelesTrak directly.
+export async function refreshTLECache(force: boolean = false): Promise<void> {
+  const latest = await getLatestTLEFetchTime();
+  if (!force && !isIntervalRefreshDue(latest, TLE_REFRESH_INTERVAL_MS)) return;
+
+  // Refreshes all tracked CelesTrak groups together so downstream snapshot
+  // generation always sees one coherent server-side TLE cache.
+  await Promise.all(
+    CELESTRAK_GROUPS.map((g) => fetchAndCacheGroup(g.group, g.url))
+  );
+}
+
+// Returns the cached TLE rows without attempting an upstream refresh.
 export async function getTLEs(): Promise<TLECacheRecord[]> {
-  const fresh = await isCacheFresh();
-
-  if (!fresh) {
-    try {
-      await Promise.all(
-        CELESTRAK_GROUPS.map((g) => fetchAndCacheGroup(g.group, g.url))
-      );
-    } catch (err) {
-      console.warn(
-        "CelesTrak fetch failed, using stale cache:",
-        err instanceof Error ? err.message : err
-      );
-    }
-  }
-
-  // Returns whatever is currently in the cache, even if the network refresh failed.
   const cached = await prisma.tleCache.findMany();
   return cached.map((r) => ({
     noradId: r.noradId,

@@ -12,6 +12,8 @@
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
     "db:setup": "prisma migrate deploy && prisma db seed",
+    "data:refresh": "tsx scripts/refreshRemoteData.ts",
+    "data:worker": "tsx scripts/runRemoteDataWorker.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

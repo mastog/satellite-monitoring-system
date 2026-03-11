@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { autoTagText } from "@/lib/posts/autoTag";
 import type { Article, Paper } from "@/lib/content/data";
+import {
+  isDailyRefreshDue,
+  STATIC_REFRESH_HOUR_UTC,
+} from "@/lib/serverRefresh";
 
-const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 const ARTICLE_RETENTION_DAYS = 14;
 const ARTICLE_MAX_TOTAL = 18;
 const ARTICLE_MAX_PER_CATEGORY = 5;
@@ -443,23 +446,23 @@ async function pruneArticleCache(now: Date): Promise<void> {
   }
 }
 
-// Provides cache-freshness helpers so article and paper syncs can avoid unnecessary refetching.
-
-async function isCacheFresh(table: "article" | "paper"): Promise<boolean> {
+// Reads the most recent article or paper refresh timestamp from the cache.
+async function getLatestScienceFetchTime(
+  table: "article" | "paper"
+): Promise<Date | null> {
   if (table === "article") {
     const latest = await prisma.articleCache.findFirst({
       orderBy: { fetchedAt: "desc" },
       select: { fetchedAt: true },
     });
-    if (!latest) return false;
-    return Date.now() - latest.fetchedAt.getTime() < CACHE_TTL_MS;
+    return latest?.fetchedAt ?? null;
   }
+
   const latest = await prisma.paperCache.findFirst({
     orderBy: { fetchedAt: "desc" },
     select: { fetchedAt: true },
   });
-  if (!latest) return false;
-  return Date.now() - latest.fetchedAt.getTime() < CACHE_TTL_MS;
+  return latest?.fetchedAt ?? null;
 }
 
 // Fetches and normalizes article data from multiple RSS feeds.
@@ -530,6 +533,14 @@ async function fetchArticlesFromFeeds(): Promise<void> {
   );
 
   await pruneArticleCache(now);
+}
+
+// Refreshes the article cache once per server refresh window instead of making
+// remote users wait for upstream RSS requests during page loads.
+export async function refreshArticlesCache(force: boolean = false): Promise<void> {
+  const latest = await getLatestScienceFetchTime("article");
+  if (!force && !isDailyRefreshDue(latest, STATIC_REFRESH_HOUR_UTC)) return;
+  await fetchArticlesFromFeeds();
 }
 
 async function parseAndStoreRSSItems(
@@ -794,6 +805,14 @@ async function fetchArxivPapers(): Promise<void> {
   }
 }
 
+// Refreshes the paper cache once per server refresh window so the public API
+// can serve stored paper records without contacting external services.
+export async function refreshPapersCache(force: boolean = false): Promise<void> {
+  const latest = await getLatestScienceFetchTime("paper");
+  if (!force && !isDailyRefreshDue(latest, STATIC_REFRESH_HOUR_UTC)) return;
+  await Promise.all([fetchSemanticScholarPapers(), fetchArxivPapers()]);
+}
+
 // Exposes the public sync functions used by routes and scheduled refresh jobs.
 
 export interface SyncedPaper extends Paper {
@@ -804,19 +823,6 @@ export async function getArticles(): Promise<{
   articles: Article[];
   fetchedAt: Date | null;
 }> {
-  const fresh = await isCacheFresh("article");
-
-  if (!fresh) {
-    try {
-      await fetchArticlesFromFeeds();
-    } catch (err) {
-      console.error(
-        "Article sync failed, using stale cache:",
-        err instanceof Error ? err.message : err
-      );
-    }
-  }
-
   const cached = await prisma.articleCache.findMany({
     orderBy: { date: "desc" },
   });
@@ -846,19 +852,6 @@ export async function getPapers(): Promise<{
   papers: SyncedPaper[];
   fetchedAt: Date | null;
 }> {
-  const fresh = await isCacheFresh("paper");
-
-  if (!fresh) {
-    try {
-      await Promise.all([fetchSemanticScholarPapers(), fetchArxivPapers()]);
-    } catch (err) {
-      console.error(
-        "Paper sync failed, using stale cache:",
-        err instanceof Error ? err.message : err
-      );
-    }
-  }
-
   const cached = await prisma.paperCache.findMany({
     orderBy: { year: "desc" },
   });

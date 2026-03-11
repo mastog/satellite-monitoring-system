@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getLatestSDGValues,
+  getLatestSDGFetchTime,
   getSDGTimeSeries,
   SDG_INDICATORS,
 } from "@/lib/sdg/worldBankApi";
 
 const ALL_SDG_NUMBERS = Object.keys(SDG_INDICATORS).map(Number);
 
+// Reads the cached indicator data prepared by the server refresh worker and
+// returns both headline values and time-series data for the requested region.
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -33,11 +36,13 @@ export async function GET(req: NextRequest) {
       })
     );
 
+    const fetchedAt = await getLatestSDGFetchTime(region);
+
     return NextResponse.json({
       region,
       data: results,
-      fetchedAt: new Date().toISOString(),
-      dataSource: "World Bank SDG Indicators",
+      fetchedAt: fetchedAt?.toISOString() ?? null,
+      dataSource: "World Bank SDG cache",
     });
   } catch (err) {
     console.error("SDG indicators API error:", err);

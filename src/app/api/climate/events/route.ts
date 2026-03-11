@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import {
   MOCK_CLIMATE_EVENTS,
   type ClimateEvent,
   type ClimateEventType,
 } from "@/lib/climate/data";
+import {
+  isDailyRefreshDue,
+  STATIC_REFRESH_HOUR_UTC,
+} from "@/lib/serverRefresh";
 const USGS_API =
   "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson";
 const GDACS_API =
@@ -50,6 +55,7 @@ const EONET_SATELLITE_MAP: Record<string, string> = {
 
 // US-centric fire tracking sources that flood the dataset
 const EONET_SKIP_SOURCES = new Set(["InciWeb", "MBFire", "ABFIRE"]);
+
 const RELIEFWEB_TYPE_MAP: Record<string, ClimateEventType> = {
   Flood: "flood",
   "Flash Flood": "flood",
@@ -174,6 +180,9 @@ const COUNTRY_COORDS: Record<string, [number, number]> = {
 };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+// Pulls recent earthquakes from the USGS feed and maps them into the
+// application's shared climate-event shape.
 async function fetchUSGS(): Promise<ClimateEvent[]> {
   const res = await fetch(USGS_API, { next: { revalidate: 900 } });
   if (!res.ok) throw new Error(`USGS ${res.status}`);
@@ -224,6 +233,9 @@ async function fetchUSGS(): Promise<ClimateEvent[]> {
     })
     .filter(Boolean) as ClimateEvent[];
 }
+
+// Pulls active EONET events and trims source-specific noise before the events
+// enter the shared climate cache.
 async function fetchEONET(): Promise<ClimateEvent[]> {
   const res = await fetch(`${EONET_API}?status=open&limit=40`, {
     next: { revalidate: 900 },
@@ -293,6 +305,9 @@ async function fetchEONET(): Promise<ClimateEvent[]> {
     })
     .filter(Boolean) as ClimateEvent[];
 }
+
+// Pulls global alert events from GDACS and converts alert metadata into the
+// normalized severity and impact fields used by the UI.
 async function fetchGDACS(): Promise<ClimateEvent[]> {
   const toDate = new Date().toISOString().split("T")[0];
   const fromDate = new Date(Date.now() - 30 * 24 * 3600_000)
@@ -359,6 +374,9 @@ async function fetchGDACS(): Promise<ClimateEvent[]> {
     })
     .filter(Boolean) as ClimateEvent[];
 }
+
+// Pulls disaster records from ReliefWeb and reconstructs approximate map
+// coordinates for country-level reports that lack point geometry.
 async function fetchReliefWeb(): Promise<ClimateEvent[]> {
   const fromDate = new Date(Date.now() - 90 * 24 * 3600_000)
     .toISOString()
@@ -443,6 +461,7 @@ const EVENT_TYPE_LABELS_LOCAL: Record<ClimateEventType, string> = {
   ice_loss: "Ice Loss",
   heatwave: "Heatwave",
 };
+
 function isNearMajorLandmass(lat: number, lng: number): boolean {
   const zones = [
     // Covers mainland North America together with Central America when filtering for major landmasses.
@@ -486,7 +505,9 @@ function isNearMajorLandmass(lat: number, lng: number): boolean {
       lat >= z.latMin && lat <= z.latMax && lng >= z.lngMin && lng <= z.lngMax
   );
 }
-// Processes highest severity first so the most important events survive.
+
+// Removes overlapping map points by keeping the higher-severity event whenever
+// multiple sources describe nearly the same location.
 function deduplicateByProximity(
   events: ClimateEvent[],
   sameTypeKm: number = 200,
@@ -533,117 +554,181 @@ function haversineKm(
       Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
+
+// Reads the latest cached climate refresh timestamp so the server worker can
+// decide whether the daily event ingest has already run.
+export async function getLatestClimateFetchTime(): Promise<Date | null> {
+  const latest = await prisma.climateEventCache.findFirst({
+    orderBy: { fetchedAt: "desc" },
+    select: { fetchedAt: true },
+  });
+  return latest?.fetchedAt ?? null;
+}
+
+// Refreshes the climate event cache from external sources on the server's
+// daily schedule so public requests can stay within the stored cache.
+export async function refreshClimateEventCache(
+  force: boolean = false
+): Promise<void> {
+  const latest = await getLatestClimateFetchTime();
+  if (!force && !isDailyRefreshDue(latest, STATIC_REFRESH_HOUR_UTC)) return;
+
+  const [usgsResult, eonetResult, gdacsResult, reliefwebResult] =
+    await Promise.allSettled([
+      fetchUSGS(),
+      fetchEONET(),
+      fetchGDACS(),
+      fetchReliefWeb(),
+    ]);
+
+  const allEvents: ClimateEvent[] = [];
+
+  if (usgsResult.status === "fulfilled") allEvents.push(...usgsResult.value);
+  if (eonetResult.status === "fulfilled") allEvents.push(...eonetResult.value);
+  if (gdacsResult.status === "fulfilled") allEvents.push(...gdacsResult.value);
+  if (reliefwebResult.status === "fulfilled")
+    allEvents.push(...reliefwebResult.value);
+
+  if (allEvents.length === 0) {
+    throw new Error("No climate sources returned events");
+  }
+
+  const deduped = deduplicateByProximity(allEvents, 800, 500);
+  const landFiltered = deduped.filter((event) =>
+    isNearMajorLandmass(event.lat, event.lng)
+  );
+
+  // Prioritizes higher-severity and newer events before applying the cap so
+  // the stored cache preserves the most relevant global incidents.
+  landFiltered.sort(
+    (a, b) =>
+      b.severity - a.severity ||
+      new Date(b.detectionDate).getTime() -
+        new Date(a.detectionDate).getTime()
+  );
+
+  const capped = landFiltered.slice(0, 80);
+
+  capped.sort((a, b) => {
+    const dateDiff =
+      new Date(b.detectionDate).getTime() -
+      new Date(a.detectionDate).getTime();
+    return dateDiff || b.severity - a.severity;
+  });
+
+  const now = new Date();
+  const keepIds = new Set(capped.map((event) => event.id));
+
+  for (const event of capped) {
+    await prisma.climateEventCache.upsert({
+      where: { eventId: event.id },
+      update: {
+        type: event.type,
+        title: event.title,
+        region: event.region,
+        lat: event.lat,
+        lng: event.lng,
+        severity: event.severity,
+        detectingSatellite: event.detectingSatellite,
+        detectionDate: event.detectionDate,
+        sdgImpact: JSON.stringify(event.sdgImpact),
+        description: event.description,
+        areaAffectedKm2: event.areaAffectedKm2,
+        status: event.status,
+        source: event.source,
+        magnitude: event.magnitude,
+        fetchedAt: now,
+      },
+      create: {
+        eventId: event.id,
+        type: event.type,
+        title: event.title,
+        region: event.region,
+        lat: event.lat,
+        lng: event.lng,
+        severity: event.severity,
+        detectingSatellite: event.detectingSatellite,
+        detectionDate: event.detectionDate,
+        sdgImpact: JSON.stringify(event.sdgImpact),
+        description: event.description,
+        areaAffectedKm2: event.areaAffectedKm2,
+        status: event.status,
+        source: event.source,
+        magnitude: event.magnitude,
+        fetchedAt: now,
+      },
+    });
+  }
+
+  await prisma.climateEventCache.deleteMany({
+    where: { eventId: { notIn: [...keepIds] } },
+  });
+}
+
+// Returns the cached climate events in display order without contacting any
+// external data sources during request handling.
+export async function getClimateEventsFromCache(): Promise<{
+  events: ClimateEvent[];
+  fetchedAt: Date | null;
+}> {
+  const cached = await prisma.climateEventCache.findMany({
+    orderBy: [{ detectionDate: "desc" }, { severity: "desc" }],
+  });
+
+  if (cached.length === 0) {
+    return { events: [], fetchedAt: null };
+  }
+
+  return {
+    events: cached.map((event) => ({
+      id: event.eventId,
+      type: event.type as ClimateEventType,
+      title: event.title,
+      region: event.region,
+      lat: event.lat,
+      lng: event.lng,
+      severity: event.severity as 1 | 2 | 3 | 4 | 5,
+      detectingSatellite: event.detectingSatellite,
+      detectionDate: event.detectionDate,
+      sdgImpact: JSON.parse(event.sdgImpact) as ClimateEvent["sdgImpact"],
+      description: event.description,
+      areaAffectedKm2: event.areaAffectedKm2,
+      status: event.status as ClimateEvent["status"],
+      source: event.source ?? undefined,
+      magnitude: event.magnitude ?? undefined,
+    })),
+    fetchedAt: cached[0].fetchedAt,
+  };
+}
+
 export async function GET() {
-  const sources: string[] = [];
-
   try {
-    const [usgsResult, eonetResult, gdacsResult, reliefwebResult] =
-      await Promise.allSettled([
-        fetchUSGS(),
-        fetchEONET(),
-        fetchGDACS(),
-        fetchReliefWeb(),
-      ]);
-
-    const allEvents: ClimateEvent[] = [];
-
-    if (usgsResult.status === "fulfilled" && usgsResult.value.length > 0) {
-      allEvents.push(...usgsResult.value);
-      sources.push("usgs");
-    } else {
-      console.warn(
-        "[Climate] USGS unavailable:",
-        usgsResult.status === "rejected"
-          ? (usgsResult.reason as Error).message
-          : "no data"
-      );
-    }
-
-    if (eonetResult.status === "fulfilled" && eonetResult.value.length > 0) {
-      allEvents.push(...eonetResult.value);
-      sources.push("eonet");
-    } else {
-      console.warn(
-        "[Climate] EONET unavailable:",
-        eonetResult.status === "rejected"
-          ? (eonetResult.reason as Error).message
-          : "no data"
-      );
-    }
-
-    if (gdacsResult.status === "fulfilled" && gdacsResult.value.length > 0) {
-      allEvents.push(...gdacsResult.value);
-      sources.push("gdacs");
-    } else {
-      console.warn(
-        "[Climate] GDACS unavailable:",
-        gdacsResult.status === "rejected"
-          ? (gdacsResult.reason as Error).message
-          : "no data"
-      );
-    }
-
-    if (
-      reliefwebResult.status === "fulfilled" &&
-      reliefwebResult.value.length > 0
-    ) {
-      allEvents.push(...reliefwebResult.value);
-      sources.push("reliefweb");
-    } else {
-      console.warn(
-        "[Climate] ReliefWeb unavailable:",
-        reliefwebResult.status === "rejected"
-          ? (reliefwebResult.reason as Error).message
-          : "no data"
-      );
-    }
-
-    if (allEvents.length === 0) {
+    const { events, fetchedAt } = await getClimateEventsFromCache();
+    if (events.length === 0) {
       return NextResponse.json({
         events: MOCK_CLIMATE_EVENTS,
         sources: ["mock"],
+        fetchedAt: null,
       });
     }
 
-    // Tiered proximity dedup: same-type 800km, cross-type 500km
-    const deduped = deduplicateByProximity(allEvents, 800, 500);
-
-    // Remove events on isolated small islands (look like ocean markers)
-    const landFiltered = deduped.filter((e) =>
-      isNearMajorLandmass(e.lat, e.lng)
-    );
-
-    // Sort by severity first to keep most important when capping
-    landFiltered.sort(
-      (a, b) =>
-        b.severity - a.severity ||
-        new Date(b.detectionDate).getTime() -
-          new Date(a.detectionDate).getTime()
-    );
-
-    // Caps the final land-event list so the map stays readable and performant.
-    const capped = landFiltered.slice(0, 80);
-
-    // Re-sort for display: newest first, then severity
-    capped.sort((a, b) => {
-      const dateDiff =
-        new Date(b.detectionDate).getTime() -
-        new Date(a.detectionDate).getTime();
-      return dateDiff || b.severity - a.severity;
+    return NextResponse.json({
+      events,
+      sources: [...new Set(events.map((event) => event.source).filter(Boolean))],
+      fetchedAt: fetchedAt?.toISOString() ?? null,
     });
-
-    return NextResponse.json({ events: capped, sources });
   } catch (error) {
-    console.warn(
-      "[Climate] All sources failed, using mock data:",
-      (error as Error).message
-    );
+    console.warn("[Climate] Cache read failed, using mock data:", error);
     return NextResponse.json({
       events: MOCK_CLIMATE_EVENTS,
       sources: ["mock"],
+      fetchedAt: null,
     });
   }
 }
+
+// Estimates the SDG impact signature for each event type so the cached records
+// can be rendered without recomputing these heuristics during requests.
 function getTypicalSdgImpact(
   type: ClimateEventType,
   severity: number

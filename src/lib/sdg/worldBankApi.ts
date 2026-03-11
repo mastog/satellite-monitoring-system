@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
-
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+import {
+  isDailyRefreshDue,
+  STATIC_REFRESH_HOUR_UTC,
+} from "@/lib/serverRefresh";
 
 // Maps the application's region labels to the World Bank identifiers used by the remote indicator API.
 const REGION_CODES: Record<string, string> = {
@@ -70,17 +72,16 @@ function normalize(value: number, def: IndicatorDef): number {
   return Math.round(Math.max(0, Math.min(100, score)));
 }
 
-async function isCacheFresh(
+async function getLatestIndicatorFetchTime(
   region: string,
   indicatorCode: string
-): Promise<boolean> {
+): Promise<Date | null> {
   const latest = await prisma.sdgCache.findFirst({
     where: { region, indicatorCode },
     orderBy: { fetchedAt: "desc" },
     select: { fetchedAt: true },
   });
-  if (!latest) return false;
-  return Date.now() - latest.fetchedAt.getTime() < CACHE_TTL_MS;
+  return latest?.fetchedAt ?? null;
 }
 
 async function fetchIndicator(
@@ -114,23 +115,10 @@ async function fetchAndCache(
   indicatorCode: string
 ): Promise<{ year: number; value: number }[]> {
   const regionCode = REGION_CODES[region] || "WLD";
-
-  // Reuses cached indicator rows when the most recent fetch is still within the freshness window.
-  const fresh = await isCacheFresh(region, indicatorCode);
-  if (fresh) {
-    const cached = await prisma.sdgCache.findMany({
-      where: { region, indicatorCode },
-      orderBy: { year: "asc" },
-    });
-    return cached
-      .filter((r) => r.value !== null)
-      .map((r) => ({ year: r.year, value: r.value! }));
-  }
-
-  // Falls back to the World Bank API when the cached values are stale or missing.
   const data = await fetchIndicator(regionCode, indicatorCode);
 
-  // Writes the refreshed series back into the cache so later reads can avoid another network request.
+  // Rewrites the cached time series in-place so later API reads can stay
+  // inside the database and avoid another World Bank request.
   const now = new Date();
   for (const d of data) {
     await prisma.sdgCache.upsert({
@@ -151,6 +139,63 @@ async function fetchAndCache(
   return data;
 }
 
+async function getCachedIndicatorSeries(
+  region: string,
+  indicatorCode: string
+): Promise<{ year: number; value: number }[]> {
+  const cached = await prisma.sdgCache.findMany({
+    where: { region, indicatorCode },
+    orderBy: { year: "asc" },
+  });
+
+  return cached
+    .filter((row) => row.value !== null)
+    .map((row) => ({ year: row.year, value: row.value! }));
+}
+
+// Refreshes every tracked indicator series once per daily server refresh
+// window so user requests can stay inside the local cache boundary.
+export async function refreshSDGCache(force: boolean = false): Promise<void> {
+  const regions = Object.keys(REGION_CODES);
+  const indicatorCodes = [
+    ...new Set(
+      Object.values(SDG_INDICATORS)
+        .flat()
+        .map((indicator) => indicator.code)
+    ),
+  ];
+
+  for (const region of regions) {
+    for (const indicatorCode of indicatorCodes) {
+      const latest = await getLatestIndicatorFetchTime(region, indicatorCode);
+      if (!force && !isDailyRefreshDue(latest, STATIC_REFRESH_HOUR_UTC)) {
+        continue;
+      }
+      try {
+        await fetchAndCache(region, indicatorCode);
+      } catch (err) {
+        console.error(
+          `SDG refresh failed for ${region}/${indicatorCode}:`,
+          err
+        );
+      }
+    }
+  }
+}
+
+// Reports the newest SDG fetch timestamp across the requested regions so API
+// responses can describe when the server-side cache was last updated.
+export async function getLatestSDGFetchTime(
+  region: string
+): Promise<Date | null> {
+  const latest = await prisma.sdgCache.findFirst({
+    where: { region },
+    orderBy: { fetchedAt: "desc" },
+    select: { fetchedAt: true },
+  });
+  return latest?.fetchedAt ?? null;
+}
+
 export interface SDGDataPoint {
   indicatorCode: string;
   year: number;
@@ -165,6 +210,8 @@ export interface SDGLatestValues {
   year: number | null;
 }
 
+// Reads one SDG's cached indicator history and converts each raw value into
+// the normalized score scale used by the charts and summary cards.
 export async function getSDGData(
   region: string,
   sdgNumber: number
@@ -175,7 +222,7 @@ export async function getSDGData(
   const results: SDGDataPoint[] = [];
   for (const ind of indicators) {
     try {
-      const data = await fetchAndCache(region, ind.code);
+      const data = await getCachedIndicatorSeries(region, ind.code);
       for (const d of data) {
         results.push({
           indicatorCode: ind.code,
@@ -191,6 +238,8 @@ export async function getSDGData(
   return results;
 }
 
+// Reads the most recent cached value for every indicator that belongs to the
+// requested SDG so the dashboard can render its headline metrics.
 export async function getLatestSDGValues(
   region: string,
   sdgNumber: number
@@ -201,7 +250,7 @@ export async function getLatestSDGValues(
   const results: SDGLatestValues[] = [];
   for (const ind of indicators) {
     try {
-      const data = await fetchAndCache(region, ind.code);
+      const data = await getCachedIndicatorSeries(region, ind.code);
       if (data.length > 0) {
         const latest = data[data.length - 1];
         results.push({
@@ -230,6 +279,8 @@ export async function getLatestSDGValues(
   return results;
 }
 
+// Builds the aggregate SDG trend line from cached indicator series so the UI
+// can render historical progress without contacting the upstream API.
 export async function getSDGTimeSeries(
   region: string,
   sdgNumber: number
@@ -242,7 +293,7 @@ export async function getSDGTimeSeries(
 
   for (const ind of indicators) {
     try {
-      const data = await fetchAndCache(region, ind.code);
+      const data = await getCachedIndicatorSeries(region, ind.code);
       for (const d of data) {
         if (!yearScores[d.year]) yearScores[d.year] = [];
         yearScores[d.year].push(normalize(d.value, ind));
