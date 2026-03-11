@@ -78,6 +78,7 @@ pnpm install
 ```env
 DATABASE_URL="file:./dev.db"
 JWT_SECRET="change-this-to-a-random-secret-in-production"
+MMD_BAKE_SECRET="change-this-to-a-random-secret-for-bake-export"
 ```
 
 ### 3.4 初始化数据库
@@ -102,7 +103,19 @@ pnpm build
 pnpm start
 ```
 
-### 3.7 代码质量
+### 3.7 数据刷新任务
+
+项目提供下面两个脚本用于服务端数据刷新：
+
+```bash
+pnpm data:refresh
+pnpm data:worker
+```
+
+- `pnpm data:refresh`：执行一次完整的数据刷新任务。
+- `pnpm data:worker`：常驻运行后台刷新任务，周期性更新文章、论文、SDG、气候事件、TLE 和卫星位置快照。
+
+### 3.8 代码质量
 
 ```bash
 pnpm lint
@@ -119,6 +132,7 @@ src/
   hooks/            # 自定义 hooks
 prisma/             # schema/migrations/seed
 public/             # 静态资源（纹理、模型、wasm）
+  mmd-bakes/        # 服务端导出的 MMD 预烘焙缓存
 docs/               # 项目文档
 scripts/            # 工具脚本
 ```
@@ -141,6 +155,34 @@ scripts/            # 工具脚本
 | `/aurora`    | `src/app/aurora/page.tsx`    | `AuroraView`                                                   | 视觉演示     |
 | `/about`     | `src/app/about/page.tsx`     | `AboutView`                                                    | 项目说明     |
 | `/admin`     | `src/app/admin/page.tsx`     | `AdminDashboard`                                               | 管理后台     |
+
+## 5.1 数据与缓存机制
+
+- **Tracking（轨道追踪）**
+  - 服务端缓存 TLE 数据，并生成卫星位置快照供客户端读取。
+  - 客户端使用卫星快照结果渲染实时点位，并使用同一时间基准绘制轨迹。
+
+- **Science / SDG / Climate**
+  - 文章、论文、SDG 指标和气候事件通过服务端刷新任务获取并写入缓存。
+  - 前端接口读取缓存结果，并返回最近一次抓取时间。
+
+- **Profile / Character Viewer**
+  - MMD 角色动画支持预烘焙缓存。
+  - 角色查看器会优先读取服务器缓存，并在本地复用已有烘焙结果。
+
+## 5.2 MMD 预烘焙缓存
+
+- `src/app/mmd-bake-export/page.tsx`
+  - 提供一个内部导出页面，用于批量触发浏览器侧烘焙并上传结果。
+
+- `src/app/api/mmd/bakes/route.ts`
+  - 提供烘焙缓存写入接口，并将结果写入 `public/mmd-bakes/`。
+
+- `MMD_BAKE_SECRET`
+  - 用于保护烘焙上传接口。
+
+- `public/mmd-bakes/`
+  - 存放预烘焙动画缓存文件。
 
 ## 6. 全量组件清单（`src/components`）
 
