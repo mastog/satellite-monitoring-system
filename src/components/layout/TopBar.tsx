@@ -313,9 +313,7 @@ export default function TopBar({
             className="w-7 h-7 rounded-md flex items-center justify-center transition-all duration-200 cursor-pointer"
             style={{
               background: showAppearance ? "var(--accent-dim)" : "transparent",
-              border: showAppearance
-                ? "1px solid var(--accent)"
-                : "1px solid var(--border-subtle)",
+              border: showAppearance ? "1px solid var(--accent)" : "none",
             }}
             title="Appearance"
           >
@@ -346,8 +344,10 @@ export default function TopBar({
             onAccentColorChange={(color) =>
               setUserPreferences({ accentColor: color })
             }
-            uiScale={userPreferences.uiScale ?? 1}
-            onUiScaleChange={(scale) => setUserPreferences({ uiScale: scale })}
+            cinematicFilter={userPreferences.cinematicFilter || "standard"}
+            onCinematicFilterChange={(filter) =>
+              setUserPreferences({ cinematicFilter: filter })
+            }
           />
         </div>
 

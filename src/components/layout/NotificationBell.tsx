@@ -103,21 +103,20 @@ export default function NotificationBell() {
       <button
         ref={buttonRef}
         onClick={toggleOpen}
-        className="relative flex items-center justify-center w-8 h-8 rounded-md transition-colors"
+        className="relative flex items-center justify-center w-7 h-7 rounded-md transition-all"
         style={{
           background: isOpen ? "rgba(0,229,255,0.08)" : "transparent",
-          border: isOpen
-            ? "1px solid rgba(0,229,255,0.15)"
-            : "1px solid transparent",
+          border: isOpen ? "1px solid rgba(0,229,255,0.3)" : "none",
+          color: isOpen ? "var(--neon-cyan)" : "var(--text-dim)",
         }}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
       >
         <svg
-          width="16"
-          height="16"
+          width="14"
+          height="14"
           viewBox="0 0 24 24"
           fill="none"
-          stroke={isOpen ? "#00e5ff" : "var(--text-secondary)"}
+          stroke="currentColor"
           strokeWidth="1.5"
         >
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -169,29 +168,43 @@ export default function NotificationBell() {
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             <div
-              className="rounded-lg overflow-hidden"
+              className="rounded-xl overflow-hidden"
               style={{
-                background: "rgba(11,15,24,0.95)",
-                backdropFilter: "blur(18px)",
-                border: "1px solid rgba(0,229,255,0.1)",
+                background:
+                  "linear-gradient(180deg, rgba(6,8,13,0.97) 0%, rgba(10,14,24,0.97) 100%)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid rgba(0,229,255,0.15)",
                 boxShadow:
-                  "0 12px 40px rgba(0,0,0,0.6), 0 0 1px rgba(0,229,255,0.1)",
+                  "0 8px 32px rgba(0,0,0,0.6), 0 0 1px rgba(0,229,255,0.3)",
               }}
             >
               {/* Shows the dropdown title and the bulk action for clearing unread indicators. */}
               <div
                 className="flex items-center justify-between px-4 py-2.5"
-                style={{ borderBottom: "1px solid rgba(0,229,255,0.06)" }}
+                style={{ borderBottom: "1px solid var(--border-subtle)" }}
               >
-                <span
-                  className="text-[12px] font-bold tracking-[0.18em] uppercase"
-                  style={{
-                    color: "var(--text-dim)",
-                    fontFamily: "var(--font-orbitron)",
-                  }}
-                >
-                  Notifications
-                </span>
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{
+                      background:
+                        unreadCount > 0 ? "var(--neon-cyan)" : "var(--text-dim)",
+                      boxShadow:
+                        unreadCount > 0
+                          ? "0 0 6px var(--neon-cyan-glow)"
+                          : "none",
+                    }}
+                  />
+                  <span
+                    className="text-[13px] font-bold tracking-[0.15em] uppercase"
+                    style={{
+                      color: "var(--text-primary)",
+                      fontFamily: "var(--font-orbitron)",
+                    }}
+                  >
+                    NOTIFICATIONS
+                  </span>
+                </div>
                 {unreadCount > 0 && (
                   <button
                     onClick={(e) => {

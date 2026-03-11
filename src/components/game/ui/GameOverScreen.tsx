@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 interface GameOverScreenProps {
   visible: boolean;
+  isAuthenticated: boolean;
   score: number;
   time: number;
   level: number;
@@ -24,6 +25,7 @@ function formatTime(seconds: number): string {
 
 export default function GameOverScreen({
   visible,
+  isAuthenticated,
   score,
   time,
   level,
@@ -35,7 +37,8 @@ export default function GameOverScreen({
   onQuit,
 }: GameOverScreenProps) {
   const [showStats, setShowStats] = useState(false);
-  const isNewHigh = highScores.length === 0 || score > highScores[0];
+  const isNewHigh =
+    isAuthenticated && (highScores.length === 0 || score > highScores[0]);
 
   useEffect(() => {
     if (visible) {
@@ -164,7 +167,7 @@ export default function GameOverScreen({
             )}
 
             {/* Shows the persisted leaderboard and highlights the current run when it placed on the board. */}
-            {highScores.length > 0 && (
+            {isAuthenticated && highScores.length > 0 && (
               <motion.div
                 className="w-full"
                 initial={{ opacity: 0 }}
@@ -175,7 +178,7 @@ export default function GameOverScreen({
                   className="text-[13px] tracking-[0.2em] uppercase mb-2"
                   style={{ color: "var(--text-dim)" }}
                 >
-                  TOP SCORES
+                  PERSONAL TOP SCORES
                 </div>
                 <div className="flex flex-col gap-1">
                   {highScores.slice(0, 5).map((hs, i) => (

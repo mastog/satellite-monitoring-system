@@ -103,13 +103,9 @@ body {
   padding: 0;
   overflow: hidden;
   height: 100%;
-  font-size: calc(18px * var(--font-scale, 1));
+  font-size: 18px;
   background: var(--void-black);
   color: var(--text-primary);
-}
-
-html {
-  --font-scale: var(--ui-scale, 1);
 }
 
 /* Draws the animated grid backdrop behind the main application shell. */
@@ -149,6 +145,91 @@ body::after {
   100% {
     transform: translate(60px, 60px);
   }
+}
+
+/* Applies the site-wide cinematic color grading and texture layers selected
+   from the appearance panel. */
+.cinematic-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.cinematic-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 38%),
+    radial-gradient(90% 110% at 50% 100%, rgba(0,0,0,0.36) 0%, transparent 44%);
+  opacity: 0.6;
+}
+
+.cinematic-shell__grade,
+.cinematic-shell__grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cinematic-shell__grade {
+  z-index: 0;
+  mix-blend-mode: soft-light;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.cinematic-shell__grain {
+  z-index: 1;
+  opacity: 0.16;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.78'/%3E%3C/svg%3E");
+  background-size: 190px 190px;
+  mix-blend-mode: soft-light;
+}
+
+.cinematic-shell > .relative {
+  filter: none;
+  transition: filter 220ms ease;
+}
+
+.cinematic-shell[data-filter="monochrome"] > .relative {
+  filter: grayscale(1) contrast(1.08) brightness(0.94);
+}
+
+.cinematic-shell[data-filter="monochrome"] .cinematic-shell__grade {
+  opacity: 0.78;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(0,0,0,0.18) 100%),
+    radial-gradient(120% 90% at 50% 10%, rgba(255,255,255,0.22) 0%, transparent 40%),
+    radial-gradient(100% 90% at 50% 100%, rgba(0,0,0,0.34) 0%, transparent 46%);
+}
+
+.cinematic-shell[data-filter="noir"] > .relative {
+  filter: grayscale(0.42) sepia(0.34) saturate(0.76) contrast(1.14)
+    brightness(0.9);
+}
+
+.cinematic-shell[data-filter="noir"] .cinematic-shell__grade {
+  opacity: 0.82;
+  background:
+    linear-gradient(180deg, rgba(58,33,11,0.28) 0%, rgba(0,0,0,0.14) 48%, rgba(12,7,4,0.42) 100%),
+    radial-gradient(80% 70% at 50% 0%, rgba(255,212,153,0.24) 0%, transparent 44%),
+    radial-gradient(100% 90% at 50% 100%, rgba(0,0,0,0.42) 0%, transparent 46%);
+}
+
+.cinematic-shell[data-filter="bleach"] > .relative {
+  filter: grayscale(0.35) sepia(0.18) saturate(0.82) contrast(1.16)
+    brightness(1.06);
+}
+
+.cinematic-shell[data-filter="bleach"] .cinematic-shell__grade {
+  opacity: 0.76;
+  background:
+    linear-gradient(180deg, rgba(255,244,214,0.2) 0%, rgba(192,210,233,0.14) 42%, rgba(18,22,28,0.22) 100%),
+    radial-gradient(110% 80% at 50% 0%, rgba(255,255,255,0.22) 0%, transparent 38%),
+    radial-gradient(100% 100% at 50% 100%, rgba(0,0,0,0.28) 0%, transparent 50%);
 }
 
 /* Defines the shared glass-panel container used by cards and major dashboard surfaces. */

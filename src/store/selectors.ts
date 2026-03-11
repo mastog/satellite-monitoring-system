@@ -17,15 +17,14 @@ function mulberry32(seed: number) {
 }
 
 /**
- * Computes the ordered list of satellites rendered in the 3D scene.
- * Tracked satellites are always included first, a deterministic sample of
- * untracked non-debris satellites fills the remaining density budget, and
- * debris entries are appended so the debris layer stays visible regardless of
- * the density slider.
+ * Computes the ordered satellite list rendered in the 3D scene.
+ * The result starts with tracked and selected satellites, then appends the
+ * density-limited non-debris sample, followed by debris entries.
  */
 export function useVisibleSatellites(): SatelliteData[] {
   const satellites = useAppStore((s) => s.satellites);
   const trackedSatellites = useAppStore((s) => s.trackedSatellites);
+  const selectedSatelliteId = useAppStore((s) => s.selectedSatellite?.id);
   const satelliteDensity = useAppStore((s) => s.satelliteDensity);
   const densitySeed = useAppStore((s) => s._densitySeed);
 
@@ -38,8 +37,7 @@ export function useVisibleSatellites(): SatelliteData[] {
       else nonDebris.push(sat);
     }
 
-    // Shuffles the non-debris pool with a seeded generator so the same seed
-    // always produces the same visible sample.
+    // Shuffles the non-debris pool with the current seeded generator.
     const rng = mulberry32(densitySeed);
     const shuffled = [...nonDebris];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -47,16 +45,25 @@ export function useVisibleSatellites(): SatelliteData[] {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    // Separates tracked satellites so they are guaranteed to stay visible
-    // before any remaining capacity is filled from the shuffled pool.
+    // Separates tracked and selected satellites from the density-limited pool.
     const tracked: SatelliteData[] = [];
     const pool: SatelliteData[] = [];
     for (const sat of shuffled) {
-      if (trackedSatellites.includes(sat.id)) tracked.push(sat);
-      else pool.push(sat);
+      if (
+        trackedSatellites.includes(sat.id) ||
+        (selectedSatelliteId != null && sat.id === selectedSatelliteId)
+      ) {
+        tracked.push(sat);
+      } else pool.push(sat);
     }
 
     const remaining = Math.max(0, satelliteDensity - tracked.length);
     return [...tracked, ...pool.slice(0, remaining), ...debris];
-  }, [satellites, trackedSatellites, satelliteDensity, densitySeed]);
+  }, [
+    satellites,
+    trackedSatellites,
+    selectedSatelliteId,
+    satelliteDensity,
+    densitySeed,
+  ]);
 }

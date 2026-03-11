@@ -128,8 +128,7 @@ function defaultStarterWeaponForHull(shipHull: ShipHull): WeaponId {
 export function createPlayer(
   shipHull: ShipHull = "viper",
   shipColor = "#00e5ff",
-  starterWeapon?: WeaponId,
-  starterSynergyId?: string
+  starterWeapon?: WeaponId
 ): PlayerState {
   const profile = getShipHullProfile(shipHull);
   const initialWeapon = starterWeapon || defaultStarterWeaponForHull(shipHull);
@@ -138,7 +137,6 @@ export function createPlayer(
   ];
   const passives = new Map<UpgradeId, number>();
   const forcedSynergies = new Set<string>();
-  if (starterSynergyId) forcedSynergies.add(starterSynergyId);
 
   const player: PlayerState = {
     x: 0,

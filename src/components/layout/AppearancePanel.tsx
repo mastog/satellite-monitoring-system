@@ -11,28 +11,58 @@ export const ACCENT_COLORS = [
   { id: "rose", label: "ROSE", color: "#ff3a8c" },
 ] as const;
 
-const SCALE_MIN = 0.85;
-const SCALE_MAX = 1.3;
-const SCALE_STEP = 0.05;
-const TICK_MARKS = [0.85, 1.0, 1.15, 1.3];
+// Defines the compact film-grade presets previewed inside the appearance panel.
+const CINEMATIC_FILTERS = [
+  {
+    id: "standard",
+    label: "STD",
+    chip: "NEUTRAL",
+    gradient:
+      "linear-gradient(135deg, rgba(0,229,255,0.32) 0%, rgba(16,23,38,0.9) 46%, rgba(255,58,140,0.2) 100%)",
+  },
+  {
+    id: "monochrome",
+    label: "MONO",
+    chip: "B&W",
+    gradient:
+      "linear-gradient(135deg, rgba(244,247,252,0.44) 0%, rgba(128,138,155,0.24) 28%, rgba(9,11,15,0.94) 100%)",
+  },
+  {
+    id: "noir",
+    label: "NOIR",
+    chip: "AMBER",
+    gradient:
+      "linear-gradient(135deg, rgba(255,208,128,0.46) 0%, rgba(63,40,21,0.68) 36%, rgba(8,8,10,0.96) 100%)",
+  },
+  {
+    id: "bleach",
+    label: "BLEACH",
+    chip: "DRY",
+    gradient:
+      "linear-gradient(135deg, rgba(255,245,214,0.4) 0%, rgba(198,210,227,0.26) 40%, rgba(26,30,40,0.92) 100%)",
+  },
+] as const;
 
 interface AppearancePanelProps {
   isOpen: boolean;
   onClose: () => void;
   accentColor: string;
   onAccentColorChange: (color: string) => void;
-  uiScale: number;
-  onUiScaleChange: (scale: number) => void;
+  cinematicFilter: (typeof CINEMATIC_FILTERS)[number]["id"];
+  onCinematicFilterChange: (
+    filter: (typeof CINEMATIC_FILTERS)[number]["id"]
+  ) => void;
   toggleRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
+// Renders the shell customization panel.
 export default function AppearancePanel({
   isOpen,
   onClose,
   accentColor,
   onAccentColorChange,
-  uiScale,
-  onUiScaleChange,
+  cinematicFilter,
+  onCinematicFilterChange,
   toggleRef,
 }: AppearancePanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -53,66 +83,77 @@ export default function AppearancePanel({
       clearTimeout(timer);
       document.removeEventListener("mousedown", handler);
     };
-  }, [isOpen, onClose]);
-
-  const scalePercent = Math.round((uiScale ?? 1) * 100);
+  }, [isOpen, onClose, toggleRef]);
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           ref={panelRef}
-          initial={{ opacity: 0, y: -8, scale: 0.96 }}
+          initial={{ opacity: 0, y: -8, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -8, scale: 0.96 }}
+          exit={{ opacity: 0, y: -8, scale: 0.97 }}
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute top-full right-0 mt-2 w-[300px] rounded-xl z-[60]"
+          className="absolute right-0 top-[calc(100%+8px)] w-80 rounded-xl overflow-hidden z-[100]"
           style={{
-            background: "#0b0f18",
-            border: "var(--glass-border)",
-            boxShadow: "var(--glass-shadow)",
+            background:
+              "linear-gradient(180deg, rgba(6,8,13,0.97) 0%, rgba(10,14,24,0.97) 100%)",
+            border: "1px solid rgba(0,229,255,0.15)",
+            backdropFilter: "blur(20px)",
+            boxShadow:
+              "0 8px 32px rgba(0,0,0,0.6), 0 0 1px rgba(0,229,255,0.3)",
           }}
         >
-          {/* Top accent line */}
           <div
-            className="absolute top-0 left-4 right-4 h-px"
-            style={{
-              background:
-                "linear-gradient(90deg, transparent, var(--accent-glow), transparent)",
-            }}
-          />
-
-          {/* Header */}
-          <div
-            className="px-4 pt-3 pb-2 flex items-center gap-2"
+            className="flex items-center justify-between px-4 py-2.5"
             style={{ borderBottom: "1px solid var(--border-subtle)" }}
           >
-            <div
-              className="w-1.5 h-1.5 rounded-full"
-              style={{
-                background: "var(--accent)",
-                boxShadow: "0 0 6px var(--accent-glow)",
-              }}
-            />
-            <span
-              className="text-[14px] font-bold tracking-[0.18em] uppercase"
-              style={{
-                color: "var(--text-secondary)",
-                fontFamily: "var(--font-orbitron)",
-              }}
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{
+                  background: "var(--accent)",
+                  boxShadow: "0 0 6px var(--accent-glow)",
+                }}
+              />
+              <span
+                className="text-[13px] font-bold tracking-[0.15em] uppercase"
+                style={{
+                  color: "var(--text-primary)",
+                  fontFamily: "var(--font-orbitron)",
+                }}
+              >
+                APPEARANCE
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-[12px] p-0.5 transition-colors"
+              style={{ color: "var(--text-dim)" }}
+              aria-label="Close appearance panel"
             >
-              APPEARANCE
-            </span>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
 
-          <div className="px-4 pt-4 pb-5 flex flex-col gap-5">
-            {/* ── Accent Color Section ── */}
+          <div className="p-4 space-y-4">
+            {/* Renders the accent color selector. */}
             <div>
               <div
-                className="text-[12px] font-bold tracking-[0.16em] uppercase mb-3"
+                className="text-[12px] font-bold tracking-[0.18em] uppercase mb-3"
                 style={{
                   color: "var(--text-dim)",
-                  fontFamily: "var(--font-fira-code)",
+                  fontFamily: "var(--font-orbitron)",
                 }}
               >
                 ACCENT COLOR
@@ -127,138 +168,160 @@ export default function AppearancePanel({
                       className="relative flex flex-col items-center gap-2 cursor-pointer"
                     >
                       <div
-                        className="w-7 h-7 rounded-full transition-all duration-200"
+                        className="w-8 h-8 rounded-full transition-all duration-200"
                         style={{
                           background: ac.color,
                           boxShadow: isActive
-                            ? `0 0 12px ${ac.color}80, 0 0 24px ${ac.color}40, inset 0 0 6px ${ac.color}60`
-                            : `0 0 4px ${ac.color}30`,
+                            ? `0 0 14px ${ac.color}85, 0 0 26px ${ac.color}42, inset 0 0 8px ${ac.color}66`
+                            : `0 0 6px ${ac.color}38`,
                           border: isActive
                             ? `2px solid ${ac.color}`
                             : "2px solid transparent",
-                          transform: isActive ? "scale(1.15)" : "scale(1)",
-                          opacity: isActive ? 1 : 0.55,
+                          transform: isActive ? "scale(1.12)" : "scale(1)",
+                          opacity: isActive ? 1 : 0.58,
                         }}
                       />
-                      {isActive && (
-                        <motion.span
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="text-[10px] font-bold tracking-[0.12em]"
-                          style={{
-                            color: ac.color,
-                            fontFamily: "var(--font-fira-code)",
-                          }}
-                        >
-                          {ac.label}
-                        </motion.span>
-                      )}
+                      <span
+                        className="text-[10px] font-bold tracking-[0.14em]"
+                        style={{
+                          color: isActive ? ac.color : "var(--text-dim)",
+                          fontFamily: "var(--font-fira-code)",
+                        }}
+                      >
+                        {ac.label}
+                      </span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* ── UI Scale Section ── */}
+            {/* Renders the cinematic filter preset grid. */}
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <div
-                  className="text-[12px] font-bold tracking-[0.16em] uppercase"
-                  style={{
-                    color: "var(--text-dim)",
-                    fontFamily: "var(--font-fira-code)",
-                  }}
-                >
-                  UI SCALE
-                </div>
-                <span
-                  className="text-[15px] font-bold tabular-nums"
-                  style={{
-                    color: "var(--accent)",
-                    fontFamily: "var(--font-fira-code)",
-                  }}
-                >
-                  {scalePercent}%
-                </span>
+              <div
+                className="text-[12px] font-bold tracking-[0.18em] uppercase mb-3"
+                style={{
+                  color: "var(--text-dim)",
+                  fontFamily: "var(--font-orbitron)",
+                }}
+              >
+                CINEMATIC FILTER
               </div>
 
-              {/* Slider — thumb is 14px, so its center is inset 7px from each edge.
-                  We pad the wrapper by 7px so that tick marks at 0%/100%
-                  line up exactly with the thumb center at min/max. */}
-              <div className="relative" style={{ padding: "0 7px" }}>
-                <input
-                  type="range"
-                  min={SCALE_MIN}
-                  max={SCALE_MAX}
-                  step={SCALE_STEP}
-                  value={uiScale ?? 1}
-                  onChange={(e) => onUiScaleChange(parseFloat(e.target.value))}
-                  className="ui-scale-slider"
-                  style={{ margin: "0 -7px", width: "calc(100% + 14px)" }}
-                />
-
-                {/* Tick marks — positioned within the padded area so they
-                    align with the slider thumb center at each value */}
-                <div className="relative mt-2" style={{ height: 24 }}>
-                  {TICK_MARKS.map((tick) => {
-                    const pct =
-                      ((tick - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100;
-                    const isActive = Math.abs(tick - (uiScale ?? 1)) < 0.01;
-                    return (
+              <div className="grid grid-cols-2 gap-2.5">
+                {CINEMATIC_FILTERS.map((preset, index) => {
+                  const isActive = preset.id === cinematicFilter;
+                  return (
+                    <motion.button
+                      key={preset.id}
+                      onClick={() => onCinematicFilterChange(preset.id)}
+                      className="group relative overflow-hidden rounded-xl p-2.5 text-left transition-colors"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.03 * index }}
+                      style={{
+                        background:
+                          "linear-gradient(180deg, rgba(11,15,24,0.9) 0%, rgba(8,11,18,0.94) 100%)",
+                        border: isActive
+                          ? "1px solid rgba(0,229,255,0.22)"
+                          : "1px solid rgba(255,255,255,0.06)",
+                        boxShadow: isActive
+                          ? "0 0 0 1px rgba(0,229,255,0.08) inset"
+                          : "none",
+                      }}
+                    >
                       <div
-                        key={tick}
-                        className="absolute flex flex-col items-center"
+                        className="absolute inset-0 opacity-80 transition-opacity duration-200 group-hover:opacity-95"
+                        style={{ background: preset.gradient }}
+                      />
+                      <div
+                        className="absolute inset-0"
                         style={{
-                          left: `${pct}%`,
-                          transform: "translateX(-50%)",
-                          top: 0,
+                          background:
+                            "repeating-linear-gradient(180deg, transparent 0px, transparent 5px, rgba(255,255,255,0.05) 5px, rgba(255,255,255,0.05) 6px)",
+                          mixBlendMode: "screen",
+                          opacity: isActive ? 0.32 : 0.16,
+                        }}
+                      />
+                      <div
+                        className="relative h-16 rounded-lg overflow-hidden"
+                        style={{
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          background:
+                            "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))",
                         }}
                       >
                         <div
-                          className="w-px"
+                          className="absolute inset-x-2 top-2 h-px"
                           style={{
-                            height: 5,
-                            background: isActive
-                              ? "var(--accent)"
-                              : "var(--text-dim)",
-                            opacity: isActive ? 1 : 0.45,
+                            background:
+                              "linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)",
+                            opacity: 0.55,
                           }}
                         />
-                        <span
-                          className="text-[11px] mt-0.5 whitespace-nowrap"
-                          style={{
-                            color: isActive
-                              ? "var(--accent)"
-                              : "var(--text-dim)",
-                            fontFamily: "var(--font-fira-code)",
-                            opacity: isActive ? 1 : 0.7,
-                          }}
+                        <div
+                          className="absolute left-2 right-2 bottom-2 flex items-center justify-between"
                         >
-                          {Math.round(tick * 100)}%
-                        </span>
+                          <div
+                            className="text-[11px] font-bold tracking-[0.18em] uppercase"
+                            style={{
+                              color: "#f3f6fb",
+                              fontFamily: "var(--font-orbitron)",
+                            }}
+                          >
+                            {preset.label}
+                          </div>
+                          <div
+                            className="rounded-full px-1.5 py-0.5 text-[9px] tracking-[0.14em] uppercase"
+                            style={{
+                              color: "rgba(243,246,251,0.88)",
+                              background: "rgba(6,8,13,0.26)",
+                              border: "1px solid rgba(255,255,255,0.12)",
+                              fontFamily: "var(--font-fira-code)",
+                            }}
+                          >
+                            {preset.chip}
+                          </div>
+                        </div>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="relative mt-2 flex items-center justify-between">
+                        <div
+                          className="flex items-center gap-1.5"
+                        >
+                          <span
+                            className="h-1.5 w-10 rounded-full"
+                            style={{
+                              background:
+                                "linear-gradient(90deg, rgba(255,255,255,0.74), rgba(255,255,255,0.14))",
+                            }}
+                          />
+                          <span
+                            className="h-1.5 w-4 rounded-full"
+                            style={{
+                              background:
+                                "linear-gradient(90deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1))",
+                            }}
+                          />
+                        </div>
+                        <div
+                          className="h-2.5 w-2.5 rounded-full border"
+                          style={{
+                            borderColor: isActive
+                              ? "var(--accent)"
+                              : "rgba(255,255,255,0.35)",
+                            background: isActive
+                              ? "var(--accent)"
+                              : "transparent",
+                            boxShadow: isActive
+                              ? "0 0 12px var(--accent-glow)"
+                              : "none",
+                          }}
+                        />
+                      </div>
+                    </motion.button>
+                  );
+                })}
               </div>
-
-              {/* Reset button */}
-              {Math.abs((uiScale ?? 1) - 1) > 0.01 && (
-                <motion.button
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  onClick={() => onUiScaleChange(1)}
-                  className="mt-5 w-full text-[12px] font-bold tracking-[0.14em] uppercase py-1.5 rounded-md transition-all duration-200 cursor-pointer"
-                  style={{
-                    color: "var(--accent)",
-                    background: "var(--accent-dim)",
-                    border:
-                      "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
-                  }}
-                >
-                  RESET TO 100%
-                </motion.button>
-              )}
             </div>
           </div>
         </motion.div>

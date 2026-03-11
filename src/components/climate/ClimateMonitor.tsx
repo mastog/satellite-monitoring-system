@@ -7,6 +7,7 @@ import SourceFlowChart from "./SourceFlowChart";
 import RegionalBreakdown from "./RegionalBreakdown";
 import EventCard from "./EventCard";
 import EventDetailModal from "./EventDetailModal";
+import InfoIcon from "@/components/ui/InfoIcon";
 import {
   EVENT_TYPE_COLORS,
   EVENT_TYPE_LABELS,
@@ -728,6 +729,13 @@ export default function ClimateMonitor() {
               >
                 {panel.title}
               </span>
+              {/* Displays the help tooltip for the source-flow panel. */}
+              {panel.title === "Source Intelligence Flow" && (
+                <InfoIcon
+                  text="Maps how raw hazard feeds, supporting observation sources, and fusion logic converge into the curated climate events shown across this view."
+                  position="top"
+                />
+              )}
             </div>
             <div className="p-4" style={{ height: 210 }}>
               {panel.content}

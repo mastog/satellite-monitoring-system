@@ -17,6 +17,7 @@ import {
   Line,
   Html,
   useTexture,
+  useProgress,
 } from "@react-three/drei";
 import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import * as THREE from "three";
@@ -848,7 +849,27 @@ function Scene() {
 }
 
 /* Wraps the Three.js canvas with the surrounding HUD panels and legends used by the tracking page. */
-export default function EarthScene() {
+function SceneReadySignal({
+  onReady,
+}: {
+  onReady?: () => void;
+}) {
+  const { active, progress } = useProgress();
+  const didNotify = useRef(false);
+
+  useFrame(() => {
+    if (!onReady || didNotify.current) return;
+    if (!active && progress >= 100) {
+      didNotify.current = true;
+      onReady();
+    }
+  });
+
+  return null;
+}
+
+/* Wraps the Three.js canvas with the surrounding HUD panels and legends used by the tracking page. */
+export default function EarthScene({ onReady }: { onReady?: () => void }) {
   const satellites = useAppStore((s) => s.satellites);
   const stats = useMemo(() => computeDashboardStats(satellites), [satellites]);
   const leoDensity = useMemo(() => computeLeoDensity(satellites), [satellites]);
@@ -868,6 +889,7 @@ export default function EarthScene() {
         }
       >
         <Scene />
+        <SceneReadySignal onReady={onReady} />
       </Canvas>
 
       {/* Anchors the summary HUD that stays fixed above the canvas. */}

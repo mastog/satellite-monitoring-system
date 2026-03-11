@@ -3,10 +3,10 @@ import { create } from "zustand";
 export type ShipHull = "viper" | "mantis" | "titan";
 
 interface GameStoreState {
-  // Persists the best run scores so the arcade UI can show a stable leaderboard
-  // across reloads.
+  // Holds the signed-in player's personal leaderboard returned by the server.
   highScores: number[];
-  addHighScore: (score: number) => void;
+  setHighScores: (scores: number[]) => void;
+  clearHighScores: () => void;
   loadHighScores: () => void;
 
   // Persists the selected hull and color that configure the player's ship
@@ -28,25 +28,18 @@ interface GameStoreState {
   addRunStats: (kills: number, debris: number) => void;
 }
 
-const HS_KEY = "sat-game-highscores";
 const STATS_KEY = "sat-game-stats";
 const SHIP_KEY = "sat-game-ship";
 
-export const useGameStore = create<GameStoreState>((set, get) => ({
+export const useGameStore = create<GameStoreState>((set) => ({
   highScores: [],
-  addHighScore: (score) => {
-    const current = get().highScores;
-    const updated = [...current, score].sort((a, b) => b - a).slice(0, 10);
-    set({ highScores: updated });
-    try {
-      localStorage.setItem(HS_KEY, JSON.stringify(updated));
-    } catch {}
-  },
+  setHighScores: (scores) =>
+    set({
+      highScores: [...scores].sort((a, b) => b - a).slice(0, 10),
+    }),
+  clearHighScores: () => set({ highScores: [] }),
   loadHighScores: () => {
     try {
-      const raw = localStorage.getItem(HS_KEY);
-      if (raw) set({ highScores: JSON.parse(raw) });
-
       const statsRaw = localStorage.getItem(STATS_KEY);
       if (statsRaw) {
         const stats = JSON.parse(statsRaw);

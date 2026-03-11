@@ -37,7 +37,7 @@ export interface UserPreferences {
   displayName: string;
   preferredUnits: "km" | "mi";
   accentColor: string;
-  uiScale: number;
+  cinematicFilter: "standard" | "monochrome" | "noir" | "bleach";
 }
 
 interface AppState {
@@ -68,7 +68,8 @@ interface AppState {
   userProfile: UserProfile | null;
   setUserProfile: (profile: UserProfile | null) => void;
 
-  // Stores unit and appearance preferences that affect formatting and theming.
+  // Stores unit and appearance preferences that affect formatting and global
+  // presentation across the shell.
   userPreferences: UserPreferences;
   setUserPreferences: (partial: Partial<UserPreferences>) => void;
 
@@ -110,7 +111,7 @@ const defaultPreferences: UserPreferences = {
   displayName: "",
   preferredUnits: "km",
   accentColor: "cyan",
-  uiScale: 1,
+  cinematicFilter: "standard",
 };
 
 export const useAppStore = create<AppState>((set, get) => ({

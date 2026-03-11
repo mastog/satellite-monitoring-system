@@ -1135,9 +1135,7 @@ export default function VoiceAssistant() {
             : listening
               ? "rgba(255,58,92,0.15)"
               : "transparent",
-          border: open
-            ? "1px solid rgba(0,229,255,0.3)"
-            : "1px solid transparent",
+          border: open ? "1px solid rgba(0,229,255,0.3)" : "none",
           color: open ? "var(--neon-cyan)" : "var(--text-dim)",
         }}
         title="Voice Assistant"
@@ -1205,7 +1203,7 @@ export default function VoiceAssistant() {
               className="flex items-center justify-between px-4 py-2.5"
               style={{ borderBottom: "1px solid var(--border-subtle)" }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <div
                   className="w-2 h-2 rounded-full"
                   style={{

@@ -93,13 +93,13 @@ export default function ClientShell({
     );
   }, [userPreferences.accentColor]);
 
-  // Apply UI scale CSS variable to <html> element
+  // Applies the active cinematic filter preset to the shell root.
   useEffect(() => {
-    document.documentElement.style.setProperty(
-      "--ui-scale",
-      String(userPreferences.uiScale ?? 1)
+    document.documentElement.setAttribute(
+      "data-cinematic-filter",
+      userPreferences.cinematicFilter || "standard"
     );
-  }, [userPreferences.uiScale]);
+  }, [userPreferences.cinematicFilter]);
 
   // Hydrate userProfile when auth state changes
   useEffect(() => {
@@ -313,56 +313,65 @@ export default function ClientShell({
 
   return (
     <div className="h-screen w-screen overflow-hidden relative flex flex-col">
-      <TopBar
-        onSignInClick={() => setShowAuthModal(true)}
-        authUser={
-          isAuthenticated && user
-            ? { name: user.name, email: user.email, role: user.role }
-            : null
-        }
-        onLogout={logout}
-      />
-
-      {/* Sign in banner */}
-      {!isAuthenticated && (
-        <motion.div
-          className="fixed top-16 left-0 right-0 z-40 text-center py-1.5"
-          style={{
-            background:
-              "linear-gradient(90deg, color-mix(in srgb, var(--holo-purple) 12%, transparent), var(--accent-dim))",
-            borderBottom: "1px solid var(--border-subtle)",
-          }}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1 }}
-        >
-          <span
-            className="text-[14px] tracking-wider"
-            style={{ color: "var(--text-dim)" }}
-          >
-            Sign in to save your tracking progress and earn achievements
-          </span>
-          <button
-            onClick={() => setShowAuthModal(true)}
-            className="ml-3 text-[14px] font-bold tracking-wider underline"
-            style={{ color: "var(--accent)" }}
-          >
-            SIGN IN
-          </button>
-        </motion.div>
-      )}
-
-      {/* Content area — flex-1 fills space above footer; shrinks when footer expands */}
-      <main
-        ref={mainRef}
-        className="flex-1 min-h-0 overflow-y-auto z-0"
-        style={{ marginTop: topOffset }}
+      <div
+        className="cinematic-shell flex h-full flex-col"
+        data-filter={userPreferences.cinematicFilter || "standard"}
       >
-        {children}
-      </main>
+        <div className="cinematic-shell__grade" />
+        <div className="cinematic-shell__grain" />
+        <div className="relative z-[1] flex h-full flex-col">
+          <TopBar
+            onSignInClick={() => setShowAuthModal(true)}
+            authUser={
+              isAuthenticated && user
+                ? { name: user.name, email: user.email, role: user.role }
+                : null
+            }
+            onLogout={logout}
+          />
 
-      {/* Footer — flex-shrink-0 pushes main upward when expanded */}
-      <Footer />
+          {/* Sign in banner */}
+          {!isAuthenticated && (
+            <motion.div
+              className="fixed top-16 left-0 right-0 z-40 text-center py-1.5"
+              style={{
+                background:
+                  "linear-gradient(90deg, color-mix(in srgb, var(--holo-purple) 12%, transparent), var(--accent-dim))",
+                borderBottom: "1px solid var(--border-subtle)",
+              }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1 }}
+            >
+              <span
+                className="text-[14px] tracking-wider"
+                style={{ color: "var(--text-dim)" }}
+              >
+                Sign in to save your tracking progress and earn achievements
+              </span>
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="ml-3 text-[14px] font-bold tracking-wider underline"
+                style={{ color: "var(--accent)" }}
+              >
+                SIGN IN
+              </button>
+            </motion.div>
+          )}
+
+          {/* Content area — flex-1 fills space above footer; shrinks when footer expands */}
+          <main
+            ref={mainRef}
+            className="flex-1 min-h-0 overflow-y-auto z-0"
+            style={{ marginTop: topOffset }}
+          >
+            {children}
+          </main>
+
+          {/* Footer — flex-shrink-0 pushes main upward when expanded */}
+          <Footer />
+        </div>
+      </div>
 
       {/* Auth Modal */}
       <AuthModal

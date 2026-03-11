@@ -15,6 +15,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { login, register, isLoading, error, clearError } = useAuthStore();
 
   // Submits the active auth form and closes the modal only after the store
@@ -33,6 +34,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       setEmail("");
       setPassword("");
       setName("");
+      setShowPassword(false);
       onClose();
     }
   };
@@ -40,6 +42,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   // Switches between login and registration modes while clearing stale errors.
   const switchMode = () => {
     setMode(mode === "login" ? "register" : "login");
+    setShowPassword(false);
     clearError();
   };
 
@@ -197,21 +200,76 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   >
                     PASSWORD
                   </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min 6 characters"
-                    required
-                    minLength={6}
-                    className="w-full px-3 py-2.5 rounded-lg text-[14px] bg-transparent outline-none transition-colors"
+                  <div
+                    className="relative flex items-center overflow-hidden rounded-lg"
                     style={{
                       border: "1px solid var(--border-subtle)",
-                      color: "var(--text-primary)",
-                      fontFamily: "var(--font-exo2)",
-                      caretColor: "var(--neon-cyan)",
+                      background:
+                        "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
                     }}
-                  />
+                  >
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Min 6 characters"
+                      required
+                      minLength={6}
+                      className="w-full bg-transparent px-3 py-2.5 pr-12 text-[14px] outline-none transition-colors"
+                      style={{
+                        color: "var(--text-primary)",
+                        fontFamily: "var(--font-exo2)",
+                        caretColor: "var(--neon-cyan)",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute right-2 inline-flex h-8 w-8 items-center justify-center transition-all duration-200"
+                      style={{
+                        color: showPassword
+                          ? "var(--accent)"
+                          : "var(--text-dim)",
+                        background: "transparent",
+                        opacity: showPassword ? 1 : 0.82,
+                      }}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? (
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.7"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 3l18 18" />
+                          <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                          <path d="M9.36 5.37A10.94 10.94 0 0 1 12 5c5 0 9.27 3.11 11 7-0.56 1.25-1.36 2.4-2.36 3.37" />
+                          <path d="M6.23 6.23C4.38 7.5 2.91 9.08 2 12c1.73 3.89 6 7 10 7 1.55 0 3.05-0.3 4.43-0.84" />
+                        </svg>
+                      ) : (
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.7"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Surfaces the latest auth error returned by the store. */}

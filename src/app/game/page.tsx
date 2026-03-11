@@ -59,7 +59,8 @@ const GUEST_PROGRESS_KEY = "sat-game-starter-progress:guest";
 export default function GamePage() {
   const {
     highScores,
-    addHighScore,
+    setHighScores,
+    clearHighScores,
     loadHighScores,
     addRunStats,
     selectedHull,
@@ -77,9 +78,6 @@ export default function GamePage() {
   const [gameAction, setGameAction] = useState<GameAction | null>(null);
   const [selectedStarterWeapon, setSelectedStarterWeapon] =
     useState<WeaponId>("stinger");
-  const [selectedStarterSynergyId, setSelectedStarterSynergyId] = useState<
-    string | undefined
-  >(undefined);
   const [starterUnlockedSkills, setStarterUnlockedSkills] =
     useState<WeaponId[]>(STARTER_BASE_SKILLS);
   const [intelFragments, setIntelFragments] = useState(0);
@@ -138,6 +136,26 @@ export default function GamePage() {
   useEffect(() => {
     loadHighScores();
   }, [loadHighScores]);
+
+  const loadPersonalScores = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      clearHighScores();
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/game/scores");
+      if (!res.ok) throw new Error("game scores fetch failed");
+      const data = await res.json();
+      setHighScores(Array.isArray(data.highScores) ? data.highScores : []);
+    } catch {
+      clearHighScores();
+    }
+  }, [clearHighScores, isAuthenticated, setHighScores, user]);
+
+  useEffect(() => {
+    void loadPersonalScores();
+  }, [loadPersonalScores]);
 
   const loadGuestProgress = useCallback(() => {
     try {
@@ -309,15 +327,34 @@ export default function GamePage() {
     }
   }, [decrypting, intelFragments, isAuthenticated, user, fetchPoints]);
 
+  const persistPersonalScore = useCallback(
+    async (state: NonNullable<typeof finalState>) => {
+      if (!isAuthenticated || !user) return;
+      try {
+        const res = await fetch("/api/game/scores", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(state),
+        });
+        if (!res.ok) throw new Error("game score save failed");
+        const data = await res.json();
+        setHighScores(Array.isArray(data.highScores) ? data.highScores : []);
+      } catch {
+        await loadPersonalScores();
+      }
+    },
+    [isAuthenticated, loadPersonalScores, setHighScores, user]
+  );
+
   const handleGameOver = useCallback(
     (state: typeof finalState) => {
       if (!state) return;
       setFinalState(state);
       setScreen("gameover");
-      addHighScore(state.score);
       addRunStats(state.kills, state.debris);
+      void persistPersonalScore(state);
     },
-    [addHighScore, addRunStats]
+    [addRunStats, persistPersonalScore]
   );
 
   const handleLevelUp = useCallback(
@@ -373,13 +410,13 @@ export default function GamePage() {
       };
       setFinalState(state);
       setScreen("gameover");
-      addHighScore(state.score);
       addRunStats(state.kills, state.debris);
+      void persistPersonalScore(state);
       return;
     }
     setFinalState(null);
     setScreen("start");
-  }, [stats, screen, addHighScore, addRunStats]);
+  }, [stats, screen, addRunStats, persistPersonalScore]);
 
   return (
     <div className="relative w-full h-full min-h-0 z-[60] bg-[#06080d]">
@@ -395,13 +432,12 @@ export default function GamePage() {
           shipHull={selectedHull}
           shipColor={selectedColor}
           starterWeapon={selectedStarterWeapon}
-          starterSynergyId={selectedStarterSynergyId}
         />
       </div>
       {screen === "start" && (
         <GameStartScreen
           onStart={handleStart}
-          highScore={highScores[0] || 0}
+          highScore={isAuthenticated ? (highScores[0] || 0) : 0}
           selectedHull={selectedHull}
           selectedColor={selectedColor}
           selectedStarterWeapon={selectedStarterWeapon}
@@ -412,12 +448,10 @@ export default function GamePage() {
           isAuthenticated={isAuthenticated}
           isDecrypting={decrypting}
           lastDecryptReward={lastDecryptReward}
-          selectedStarterSynergyId={selectedStarterSynergyId}
           onHullChange={setSelectedHull}
           onColorChange={setSelectedColor}
           onStarterWeaponChange={setSelectedStarterWeapon}
           onDecryptIntel={handleDecryptIntel}
-          onStarterSynergyChange={setSelectedStarterSynergyId}
         />
       )}
 
@@ -562,6 +596,7 @@ export default function GamePage() {
       {screen === "gameover" && finalState && (
         <GameOverScreen
           visible
+          isAuthenticated={isAuthenticated}
           score={finalState.score}
           time={finalState.time}
           level={finalState.level}

@@ -289,14 +289,15 @@ export default function CommunityHub() {
           >
             <GlassPanel
               title="NEAREST SATELLITES"
-              accentColor="var(--neon-orange)"
+              accentColor="var(--neon-cyan)"
             >
+              {/* Displays the nearby-satellite summary banner. */}
               <div
                 className="text-[14px] mb-4 p-3 rounded-lg flex items-center gap-3"
                 style={{
-                  background: "var(--neon-orange-dim)",
-                  border: "1px solid rgba(255,107,44,0.2)",
-                  color: "var(--neon-orange)",
+                  background: "var(--neon-cyan-dim)",
+                  border: "1px solid rgba(0,229,255,0.18)",
+                  color: "var(--neon-cyan)",
                 }}
               >
                 <svg
@@ -410,14 +411,16 @@ export default function CommunityHub() {
                           </button>
                           <button
                             onClick={() => {
+                              // Selects the target satellite before navigating
+                              // into the tracking scene.
                               setSelectedSatellite(sat);
                               router.push("/tracking");
                             }}
                             className="px-2 py-1 rounded text-[12px] font-bold tracking-wider transition-all"
                             style={{
-                              background: "rgba(255,107,44,0.10)",
-                              color: "var(--neon-orange)",
-                              border: "1px solid rgba(255,107,44,0.2)",
+                              background: "rgba(0,229,255,0.1)",
+                              color: "var(--neon-cyan)",
+                              border: "1px solid rgba(0,229,255,0.2)",
                             }}
                           >
                             VIEW 3D

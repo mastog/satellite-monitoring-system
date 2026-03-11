@@ -12,7 +12,6 @@ import {
 import type { ShipHull } from "@/store/gameStore";
 import { getShipHullProfile } from "../entities/Player";
 import { getAllWeapons, type WeaponId } from "@/lib/game/weapons";
-import { SYNERGIES } from "@/lib/game/synergies";
 import { SKILL_KNOWLEDGE } from "@/lib/game/skillKnowledge";
 
 // Describes the reward preview shown after decrypting a starter weapon.
@@ -38,16 +37,14 @@ interface GameStartScreenProps {
   isAuthenticated: boolean;
   isDecrypting: boolean;
   lastDecryptReward: DecryptRewardPreview | null;
-  selectedStarterSynergyId?: string;
   onHullChange: (hull: ShipHull) => void;
   onColorChange: (color: string) => void;
   onStarterWeaponChange: (weapon: WeaponId) => void;
   onDecryptIntel: () => void;
-  onStarterSynergyChange: (id?: string) => void;
 }
 
 const HULLS: { id: ShipHull; name: string; cls: string }[] = [
-  { id: "viper", name: "VIPER", cls: "Interceptor" },
+  { id: "viper", name: "VIPER", cls: "Scout" },
   { id: "mantis", name: "MANTIS", cls: "Assault" },
   { id: "titan", name: "TITAN", cls: "Heavy" },
 ];
@@ -472,12 +469,10 @@ export default function GameStartScreen({
   isAuthenticated,
   isDecrypting,
   lastDecryptReward,
-  selectedStarterSynergyId,
   onHullChange,
   onColorChange,
   onStarterWeaponChange,
   onDecryptIntel,
-  onStarterSynergyChange,
 }: GameStartScreenProps) {
   const [hoveredHull, setHoveredHull] = useState<ShipHull | null>(null);
   const [knowledgeOpenFor, setKnowledgeOpenFor] = useState<WeaponId | null>(
@@ -495,13 +490,6 @@ export default function GameStartScreen({
     intelFragments > 0 &&
     userPoints >= decryptCost &&
     !isDecrypting;
-  const starterSynergyOptions = useMemo(
-    () =>
-      SYNERGIES.map((s) => ({ id: s.id, label: s.name })).sort((a, b) =>
-        a.label.localeCompare(b.label)
-      ),
-    []
-  );
   const reelWeapons = useMemo(
     () =>
       ownedStarterWeaponIds
@@ -689,15 +677,15 @@ export default function GameStartScreen({
                 </div>
               </div>
               <AnimatePresence>
-                {highScore > 0 && (
+                {isAuthenticated && highScore > 0 && (
                   <motion.div
-                    className="text-[12px] tracking-wider"
+                    className="text-[13px] tracking-[0.16em]"
                     style={{ color: "var(--text-dim)" }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    BEST{" "}
+                    PERSONAL BEST{" "}
                     <span
                       style={{
                         color: "var(--accent)",
@@ -712,9 +700,9 @@ export default function GameStartScreen({
             </div>
           </motion.header>
 
-          <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] gap-3 items-stretch min-h-0 flex-1">
+          <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(320px,0.95fr)] gap-3 items-stretch min-h-0 flex-1">
             <motion.section
-              className="rounded-2xl p-4 md:p-4 min-h-0 flex flex-col"
+              className="rounded-2xl p-4 md:p-4 min-h-0 flex flex-col overflow-y-auto"
               style={{
                 background:
                   "linear-gradient(150deg, rgba(11,18,30,0.86), rgba(8,13,22,0.83))",
@@ -726,13 +714,13 @@ export default function GameStartScreen({
             >
               <div className="mb-3">
                 <div
-                  className="text-[11px] tracking-[0.24em] uppercase"
+                  className="text-[13px] tracking-[0.24em] uppercase"
                   style={{ color: "var(--text-dim)" }}
                 >
                   Ship Hangar
                 </div>
                 <div
-                  className="text-[13px] mt-1"
+                  className="text-[15px] mt-1 leading-relaxed"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   Select chassis and paint. Starter skill is configured
@@ -740,7 +728,7 @@ export default function GameStartScreen({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 min-[1220px]:grid-cols-3 gap-2.5">
                 {HULLS.map((hull, idx) => {
                   const isSelected = selectedHull === hull.id;
                   const isHovered = hoveredHull === hull.id;
@@ -800,7 +788,7 @@ export default function GameStartScreen({
                       <div className="flex items-center justify-between">
                         <div>
                           <div
-                            className="text-[13px] font-bold tracking-[0.14em]"
+                            className="text-[15px] font-bold tracking-[0.14em]"
                             style={{
                               fontFamily: "var(--font-orbitron)",
                               color: isSelected
@@ -811,7 +799,7 @@ export default function GameStartScreen({
                             {hull.name}
                           </div>
                           <div
-                            className="text-[10px] uppercase tracking-[0.16em]"
+                            className="text-[12px] uppercase tracking-[0.16em]"
                             style={{ color: "var(--text-dim)" }}
                           >
                             {hull.cls}
@@ -841,7 +829,7 @@ export default function GameStartScreen({
                             className="flex items-center gap-1.5 mb-1 last:mb-0"
                           >
                             <span
-                              className="text-[8px] tracking-[0.18em] w-6"
+                              className="text-[10px] tracking-[0.18em] w-8"
                               style={{
                                 color: "var(--text-dim)",
                                 fontFamily: "var(--font-fira)",
@@ -859,20 +847,23 @@ export default function GameStartScreen({
                                   width: s.width,
                                   background: s.good
                                     ? "var(--accent)"
-                                    : "rgba(255,255,255,0.42)",
+                                    : "linear-gradient(90deg, #ff9468, #ff6b5e)",
                                   boxShadow: s.good
                                     ? "0 0 8px color-mix(in srgb, var(--accent) 45%, transparent)"
-                                    : "none",
+                                    : "0 0 10px rgba(255,120,96,0.22)",
                                 }}
                               />
                             </div>
                             <span
-                              className="text-[8px] tabular-nums w-8 text-right"
+                              className="text-[10px] tabular-nums w-10 text-right"
                               style={{
                                 color: s.good
                                   ? "var(--accent)"
-                                  : "var(--text-dim)",
+                                  : "#ffb095",
                                 fontFamily: "var(--font-fira)",
+                                textShadow: s.good
+                                  ? "none"
+                                  : "0 0 8px rgba(255,120,96,0.18)",
                               }}
                             >
                               {s.delta}
@@ -887,7 +878,7 @@ export default function GameStartScreen({
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span
-                  className="text-[10px] tracking-[0.2em] uppercase"
+                  className="text-[12px] tracking-[0.2em] uppercase"
                   style={{ color: "var(--text-dim)" }}
                 >
                   Hull Color
@@ -927,7 +918,7 @@ export default function GameStartScreen({
             >
               <div className="flex items-center justify-between mb-2">
                 <span
-                  className="text-[11px] tracking-[0.22em] uppercase"
+                  className="text-[13px] tracking-[0.22em] uppercase"
                   style={{
                     color: "var(--text-dim)",
                     fontFamily: "var(--font-fira)",
@@ -936,7 +927,7 @@ export default function GameStartScreen({
                   Starter Skill Vault
                 </span>
                 <span
-                  className="text-[11px]"
+                  className="text-[13px]"
                   style={{ color: "var(--text-dim)" }}
                 >
                   Owned:{" "}
@@ -1111,13 +1102,13 @@ export default function GameStartScreen({
                               </div>
                               <div className="min-w-0">
                                 <div
-                                  className="text-[11px] truncate"
+                                  className="text-[13px] truncate"
                                   style={{ color: "var(--text-primary)" }}
                                 >
                                   {entry.weapon.name}
                                 </div>
                                 <div
-                                  className="text-[9px] uppercase tracking-[0.14em]"
+                                  className="text-[11px] uppercase tracking-[0.14em]"
                                   style={{ color: entry.weapon.color }}
                                 >
                                   {entry.weapon.rarity}
@@ -1168,7 +1159,7 @@ export default function GameStartScreen({
                 )}
 
                 <div
-                  className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] tracking-[0.16em] uppercase px-2 py-0.5 rounded"
+                  className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[11px] tracking-[0.16em] uppercase px-2 py-0.5 rounded"
                   style={{
                     color: "var(--text-dim)",
                     fontFamily: "var(--font-fira-code)",
@@ -1189,13 +1180,13 @@ export default function GameStartScreen({
                 }}
               >
                 <div
-                  className="text-[10px] tracking-[0.18em] uppercase"
+                  className="text-[12px] tracking-[0.18em] uppercase"
                   style={{ color: "var(--text-dim)" }}
                 >
                   ENCRYPTED INTEL
                 </div>
                 <div
-                  className="text-[12px] mt-0.5"
+                  className="text-[14px] mt-0.5 leading-relaxed"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   Fragments{" "}
@@ -1210,7 +1201,7 @@ export default function GameStartScreen({
                 </div>
                 {!isAuthenticated && (
                   <div
-                    className="text-[11px] mt-0.5"
+                    className="text-[13px] mt-0.5 leading-relaxed"
                     style={{ color: "var(--text-dim)" }}
                   >
                     Sign in to decrypt and unlock new starter skills.
@@ -1218,7 +1209,7 @@ export default function GameStartScreen({
                 )}
                 {lastDecryptReward && (
                   <div
-                    className="text-[11px] mt-0.5"
+                    className="text-[13px] mt-0.5 leading-relaxed"
                     style={{ color: lastDecryptReward.color }}
                   >
                     Decrypted: {lastDecryptReward.name}{" "}
@@ -1229,7 +1220,7 @@ export default function GameStartScreen({
                   type="button"
                   onClick={onDecryptIntel}
                   disabled={!canDecrypt}
-                  className="mt-2.5 pointer-events-auto px-3 py-2 rounded-md text-[11px] tracking-[0.16em] uppercase font-bold transition-all"
+                  className="mt-2.5 pointer-events-auto px-3 py-2 rounded-md text-[13px] tracking-[0.16em] uppercase font-bold transition-all"
                   style={{
                     fontFamily: "var(--font-orbitron)",
                     color: canDecrypt ? "#d6f3ff" : "rgba(214,243,255,0.42)",
@@ -1249,45 +1240,6 @@ export default function GameStartScreen({
                 </button>
               </div>
 
-              <div className="mt-2.5 flex items-center gap-3">
-                <div className="w-full">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="text-[10px] tracking-[0.2em] uppercase shrink-0"
-                      style={{ color: "var(--text-dim)" }}
-                    >
-                      START FUSION
-                    </span>
-                    <select
-                      className="w-full px-3 py-1.5 rounded-md text-[12px] pointer-events-auto"
-                      style={{
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        color: "var(--text-secondary)",
-                        fontFamily: "var(--font-fira)",
-                      }}
-                      value={selectedStarterSynergyId || ""}
-                      onChange={(e) =>
-                        onStarterSynergyChange(e.target.value || undefined)
-                      }
-                    >
-                      <option value="">None</option>
-                      {starterSynergyOptions.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div
-                    className="mt-1 text-[10px] tracking-[0.08em]"
-                    style={{ color: "var(--text-dim)" }}
-                  >
-                    Test mode: all designed fusions are selectable here and
-                    granted directly at mission start.
-                  </div>
-                </div>
-              </div>
             </motion.section>
           </div>
 

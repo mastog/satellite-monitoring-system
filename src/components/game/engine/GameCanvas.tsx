@@ -32,7 +32,6 @@ interface GameCanvasProps {
   shipHull?: ShipHull;
   shipColor?: string;
   starterWeapon?: WeaponId;
-  starterSynergyId?: string;
 }
 
 export interface LevelUpChoice {
@@ -98,7 +97,6 @@ export default function GameCanvas({
   shipHull,
   shipColor,
   starterWeapon,
-  starterSynergyId,
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameState | null>(null);
@@ -130,13 +128,11 @@ export default function GameCanvas({
     hull: shipHull,
     color: shipColor,
     starterWeapon,
-    starterSynergyId,
   });
   shipRef.current = {
     hull: shipHull,
     color: shipColor,
     starterWeapon,
-    starterSynergyId,
   };
 
   // Keep canvas display size and internal resolution aligned.

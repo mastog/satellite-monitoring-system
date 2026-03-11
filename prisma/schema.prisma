@@ -25,6 +25,7 @@ model User {
   notifications      Notification[]
   purchases          Purchase[]
   quizAttempts       QuizAttempt[]
+  gameScores         GameScore[]
 
   @@map("users")
 }
@@ -228,4 +229,21 @@ model QuizAttempt {
 
   @@index([userId, createdAt])
   @@map("quiz_attempts")
+}
+
+model GameScore {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  score     Int
+  duration  Float
+  level     Int
+  kills     Int
+  debris    Int
+  weapons   String   @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, score(sort: Desc)])
+  @@index([userId, createdAt])
+  @@map("game_scores")
 }

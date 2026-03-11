@@ -99,7 +99,6 @@ export function createGame(
     hull?: ShipHull;
     color?: string;
     starterWeapon?: WeaponId;
-    starterSynergyId?: string;
   }>
 ): GameState {
   // Uses low-overhead canvas settings so more frame budget remains available
@@ -131,8 +130,7 @@ export function createGame(
   let player = createPlayer(
     shipRef.current.hull,
     shipRef.current.color,
-    shipRef.current.starterWeapon,
-    shipRef.current.starterSynergyId
+    shipRef.current.starterWeapon
   );
   let paused = false;
   let running = false;
@@ -159,8 +157,7 @@ export function createGame(
     player = createPlayer(
       shipRef.current.hull,
       shipRef.current.color,
-      shipRef.current.starterWeapon,
-      shipRef.current.starterSynergyId
+      shipRef.current.starterWeapon
     );
     bullets.releaseAll();
     enemies.releaseAll();
