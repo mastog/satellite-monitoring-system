@@ -296,6 +296,13 @@ function UserLocationMarker() {
 }
 
 /* Renders a single satellite marker, hover card, and tracking controls within the globe scene. */
+function parseSnapshotDate(snapshotAt?: string): Date | null {
+  if (!snapshotAt) return null;
+  const parsed = new Date(snapshotAt);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/* Renders a single satellite marker, hover card, and tracking controls within the globe scene. */
 const SatellitePoint = memo(function SatellitePoint({
   satellite: sat,
   earthRadius = 2,
@@ -316,16 +323,31 @@ const SatellitePoint = memo(function SatellitePoint({
     useCallback((s) => s.trackedSatellites.includes(sat.id), [sat.id])
   );
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const liveSnapshotDate = useMemo(
+    () => parseSnapshotDate(sat.snapshotAt),
+    [sat.snapshotAt]
+  );
 
-  // Recomputes the orbital position against the scrubbed timestamp when timeline playback is not using live time.
+  // Keeps live rendering anchored to the server snapshot time so the marker
+  // and orbit trail share the same propagated reference point.
   const currentPos = useMemo(() => {
-    if (timeOffset !== 0 && sat.tle1 && sat.tle2) {
-      const targetDate = new Date(Date.now() + timeOffset);
+    if (sat.tle1 && sat.tle2 && (timeOffset !== 0 || liveSnapshotDate)) {
+      const baseDate = liveSnapshotDate ?? new Date();
+      const targetDate = new Date(baseDate.getTime() + timeOffset);
       const pos = propagate(sat.tle1, sat.tle2, targetDate);
       if (pos) return pos;
     }
     return { lat: sat.lat, lng: sat.lng, alt: sat.alt, velocity: sat.velocity };
-  }, [timeOffset, sat.tle1, sat.tle2, sat.lat, sat.lng, sat.alt, sat.velocity]);
+  }, [
+    liveSnapshotDate,
+    timeOffset,
+    sat.tle1,
+    sat.tle2,
+    sat.lat,
+    sat.lng,
+    sat.alt,
+    sat.velocity,
+  ]);
 
   const scaleRadius = earthRadius + (currentPos.alt / 6371) * earthRadius;
   const position = latLngToVector3(currentPos.lat, currentPos.lng, scaleRadius);
@@ -687,13 +709,20 @@ function SatelliteTrail({
   earthRadius?: number;
 }) {
   const timeOffset = useAppStore((s) => s.timeOffset);
+  const liveSnapshotDate = useMemo(
+    () => parseSnapshotDate(sat.snapshotAt),
+    [sat.snapshotAt]
+  );
 
   const { points, colors } = useMemo(() => {
     if (!sat.tle1 || !sat.tle2)
       return { points: [] as THREE.Vector3[], colors: [] as THREE.Color[] };
 
-    // Samples a short slice of past positions so the trail reads as recent motion rather than a full orbit path.
-    const now = new Date(Date.now() + timeOffset);
+    // Uses the same snapshot timestamp as the live marker so the trail ends
+    // exactly at the visible satellite position during live playback.
+    const now = new Date(
+      (liveSnapshotDate ?? new Date()).getTime() + timeOffset
+    );
     const pastStart = new Date(now.getTime() - 10 * 60000);
     const path = generateOrbitPath(sat.tle1, sat.tle2, pastStart, 10, 1);
     if (path.length < 2)
@@ -726,7 +755,16 @@ function SatelliteTrail({
       );
     }
     return { points: pts, colors: cols };
-  }, [sat.tle1, sat.tle2, sat.type, sat.lat, sat.lng, timeOffset, earthRadius]);
+  }, [
+    liveSnapshotDate,
+    sat.tle1,
+    sat.tle2,
+    sat.type,
+    sat.lat,
+    sat.lng,
+    timeOffset,
+    earthRadius,
+  ]);
 
   if (points.length < 2) return null;
 

@@ -141,7 +141,8 @@ export default function ClientShell({
     }
   }, [setUserLocation]);
 
-  // Initialize satellite data: fetch live TLEs, fallback to mock
+  // Initializes the client with the latest server-generated satellite
+  // snapshots so live tracking starts from the same cached positions.
   useEffect(() => {
     if (satellites.length > 0) return;
     let cancelled = false;

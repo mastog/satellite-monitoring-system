@@ -120,6 +120,9 @@ export async function getSatelliteSnapshots(): Promise<{
       tle2: snapshot.tle2 ?? undefined,
       group: snapshot.satGroup ?? undefined,
       epochAge: snapshot.epochAge ?? undefined,
+      // Preserves the server-side propagation timestamp so the client can keep
+      // markers and locally drawn orbit trails in the same time frame.
+      snapshotAt: snapshot.snapshotAt.toISOString(),
     })),
     fetchedAt,
   };

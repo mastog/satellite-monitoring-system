@@ -13,6 +13,9 @@ export interface SatelliteData {
   tle2?: string;
   group?: string;
   epochAge?: number;
+  // Carries the server snapshot timestamp so live markers and orbit trails can
+  // stay aligned to the same propagated frame.
+  snapshotAt?: string;
 }
 
 export interface UserProfile {
