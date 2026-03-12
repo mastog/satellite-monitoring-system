@@ -83,10 +83,12 @@ export default function GameHUD({ stats }: GameHUDProps) {
           position: "absolute",
           left: 12,
           top: 12,
+          bottom: 96,
           display: "flex",
           flexDirection: "column",
           gap: 2,
-          maxHeight: "calc(100vh - 160px)",
+          minHeight: 0,
+          maxHeight: "none",
           overflowY: "auto",
           width: 190,
         }}

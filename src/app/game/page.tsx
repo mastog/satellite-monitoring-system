@@ -419,7 +419,7 @@ export default function GamePage() {
   }, [stats, screen, addRunStats, persistPersonalScore]);
 
   return (
-    <div className="relative w-full h-full min-h-0 z-[60] bg-[#06080d]">
+    <div className="relative z-[60] h-full min-h-0 w-full overflow-hidden bg-[#06080d]">
       <div className="absolute inset-0">
         <GameCanvas
           onGameOver={handleGameOver}

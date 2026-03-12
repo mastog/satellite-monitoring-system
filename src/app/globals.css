@@ -152,6 +152,8 @@ body::after {
 .cinematic-shell {
   position: relative;
   isolation: isolate;
+  filter: none;
+  transition: filter 220ms ease;
 }
 
 .cinematic-shell::before {
@@ -174,14 +176,14 @@ body::after {
 }
 
 .cinematic-shell__grade {
-  z-index: 0;
+  z-index: 2;
   mix-blend-mode: soft-light;
   opacity: 0;
   transition: opacity 220ms ease;
 }
 
 .cinematic-shell__grain {
-  z-index: 1;
+  z-index: 3;
   opacity: 0.16;
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.78'/%3E%3C/svg%3E");
@@ -189,47 +191,66 @@ body::after {
   mix-blend-mode: soft-light;
 }
 
-.cinematic-shell > .relative {
-  filter: none;
-  transition: filter 220ms ease;
+/* Applies the active site-wide filter profile selected from the appearance panel. */
+.cinematic-shell[data-filter="noir"] {
+  filter: grayscale(0.32) sepia(0.28) saturate(0.84) contrast(1.08)
+    brightness(0.98);
 }
 
-.cinematic-shell[data-filter="monochrome"] > .relative {
-  filter: grayscale(1) contrast(1.08) brightness(0.94);
-}
-
-.cinematic-shell[data-filter="monochrome"] .cinematic-shell__grade {
-  opacity: 0.78;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(0,0,0,0.18) 100%),
-    radial-gradient(120% 90% at 50% 10%, rgba(255,255,255,0.22) 0%, transparent 40%),
-    radial-gradient(100% 90% at 50% 100%, rgba(0,0,0,0.34) 0%, transparent 46%);
-}
-
-.cinematic-shell[data-filter="noir"] > .relative {
-  filter: grayscale(0.42) sepia(0.34) saturate(0.76) contrast(1.14)
-    brightness(0.9);
-}
-
+/* Adds the warm shadows and lifted highlights used by the noir profile. */
 .cinematic-shell[data-filter="noir"] .cinematic-shell__grade {
-  opacity: 0.82;
+  opacity: 0.68;
   background:
-    linear-gradient(180deg, rgba(58,33,11,0.28) 0%, rgba(0,0,0,0.14) 48%, rgba(12,7,4,0.42) 100%),
-    radial-gradient(80% 70% at 50% 0%, rgba(255,212,153,0.24) 0%, transparent 44%),
-    radial-gradient(100% 90% at 50% 100%, rgba(0,0,0,0.42) 0%, transparent 46%);
+    linear-gradient(180deg, rgba(58,33,11,0.18) 0%, rgba(0,0,0,0.08) 48%, rgba(12,7,4,0.24) 100%),
+    radial-gradient(80% 70% at 50% 0%, rgba(255,212,153,0.2) 0%, transparent 44%),
+    radial-gradient(100% 90% at 50% 100%, rgba(0,0,0,0.24) 0%, transparent 46%);
 }
 
-.cinematic-shell[data-filter="bleach"] > .relative {
-  filter: grayscale(0.35) sepia(0.18) saturate(0.82) contrast(1.16)
-    brightness(1.06);
+/* Adds a brighter lens-bloom profile that keeps the interface readable. */
+.cinematic-shell[data-filter="halation"] {
+  filter: saturate(1.08) contrast(1.04) brightness(0.98);
 }
 
-.cinematic-shell[data-filter="bleach"] .cinematic-shell__grade {
-  opacity: 0.76;
+/* Adds the halation glow field layered over the active interface. */
+.cinematic-shell[data-filter="halation"] .cinematic-shell__grade {
+  opacity: 0.88;
   background:
-    linear-gradient(180deg, rgba(255,244,214,0.2) 0%, rgba(192,210,233,0.14) 42%, rgba(18,22,28,0.22) 100%),
-    radial-gradient(110% 80% at 50% 0%, rgba(255,255,255,0.22) 0%, transparent 38%),
-    radial-gradient(100% 100% at 50% 100%, rgba(0,0,0,0.28) 0%, transparent 50%);
+    radial-gradient(120% 115% at 50% 0%, rgba(255,194,140,0.28) 0%, transparent 42%),
+    radial-gradient(100% 90% at 50% 100%, rgba(0,0,0,0.3) 0%, transparent 48%),
+    linear-gradient(180deg, rgba(255,244,214,0.08) 0%, rgba(0,229,255,0.08) 52%, rgba(12,18,30,0.18) 100%);
+}
+
+/* Boosts the grain layer so the halation profile keeps a filmic texture. */
+.cinematic-shell[data-filter="halation"] .cinematic-shell__grain {
+  opacity: 0.22;
+  mix-blend-mode: screen;
+}
+
+/* Applies the terminal-like scan profile across the active interface. */
+.cinematic-shell[data-filter="scan"] {
+  filter: hue-rotate(-10deg) saturate(1.05) contrast(1.12) brightness(0.95);
+}
+
+/* Layers scan lines and cool highlights over the scan profile. */
+.cinematic-shell[data-filter="scan"] .cinematic-shell__grade {
+  opacity: 0.92;
+  background:
+    linear-gradient(180deg, rgba(12,255,200,0.06) 0%, rgba(0,0,0,0.08) 100%),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0px,
+      transparent 3px,
+      rgba(103, 255, 214, 0.07) 3px,
+      rgba(103, 255, 214, 0.07) 4px
+    ),
+    radial-gradient(140% 100% at 50% 0%, rgba(0,229,255,0.12) 0%, transparent 42%),
+    radial-gradient(120% 100% at 50% 100%, rgba(0,0,0,0.3) 0%, transparent 52%);
+}
+
+/* Raises the grain brightness used by the scan profile. */
+.cinematic-shell[data-filter="scan"] .cinematic-shell__grain {
+  opacity: 0.24;
+  mix-blend-mode: plus-lighter;
 }
 
 /* Defines the shared glass-panel container used by cards and major dashboard surfaces. */

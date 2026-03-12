@@ -21,13 +21,6 @@ const CINEMATIC_FILTERS = [
       "linear-gradient(135deg, rgba(0,229,255,0.32) 0%, rgba(16,23,38,0.9) 46%, rgba(255,58,140,0.2) 100%)",
   },
   {
-    id: "monochrome",
-    label: "MONO",
-    chip: "B&W",
-    gradient:
-      "linear-gradient(135deg, rgba(244,247,252,0.44) 0%, rgba(128,138,155,0.24) 28%, rgba(9,11,15,0.94) 100%)",
-  },
-  {
     id: "noir",
     label: "NOIR",
     chip: "AMBER",
@@ -35,11 +28,18 @@ const CINEMATIC_FILTERS = [
       "linear-gradient(135deg, rgba(255,208,128,0.46) 0%, rgba(63,40,21,0.68) 36%, rgba(8,8,10,0.96) 100%)",
   },
   {
-    id: "bleach",
-    label: "BLEACH",
-    chip: "DRY",
+    id: "halation",
+    label: "HALO",
+    chip: "BLOOM",
     gradient:
-      "linear-gradient(135deg, rgba(255,245,214,0.4) 0%, rgba(198,210,227,0.26) 40%, rgba(26,30,40,0.92) 100%)",
+      "linear-gradient(135deg, rgba(255,176,108,0.42) 0%, rgba(0,229,255,0.2) 34%, rgba(14,18,30,0.96) 100%)",
+  },
+  {
+    id: "scan",
+    label: "SCAN",
+    chip: "OPS",
+    gradient:
+      "linear-gradient(135deg, rgba(68,255,212,0.34) 0%, rgba(0,229,255,0.18) 28%, rgba(9,14,18,0.96) 100%)",
   },
 ] as const;
 

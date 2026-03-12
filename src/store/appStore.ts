@@ -13,8 +13,7 @@ export interface SatelliteData {
   tle2?: string;
   group?: string;
   epochAge?: number;
-  // Carries the server snapshot timestamp so live markers and orbit trails can
-  // stay aligned to the same propagated frame.
+  // Stores the timestamp of the propagated server snapshot attached to this record.
   snapshotAt?: string;
 }
 
@@ -37,7 +36,7 @@ export interface UserPreferences {
   displayName: string;
   preferredUnits: "km" | "mi";
   accentColor: string;
-  cinematicFilter: "standard" | "monochrome" | "noir" | "bleach";
+  cinematicFilter: "standard" | "noir" | "halation" | "scan";
 }
 
 interface AppState {

@@ -284,18 +284,24 @@ export default function ClientShell({
     loadTrackedFromServer,
   ]);
 
-  const topOffset = isAuthenticated ? "4rem" : "5.75rem";
+  const topOffset = "4rem";
+  const isGroundRoute = pathname === "/ground";
+  const isGameRoute = pathname === "/game";
+  const mainClassName = isGroundRoute
+    ? "z-0 min-h-0 w-full min-w-0 overflow-hidden"
+    : isGameRoute
+      ? "z-0 min-h-0 overflow-hidden"
+      : "z-0 min-h-0 overflow-y-auto";
 
-  /* Keep scrollable pages bottom-anchored when footer expands/collapses.
-     When <main> shrinks (footer opens), increase scrollTop so the bottom
-     stays fixed and content pushes upward. Vice versa when it grows. */
+  // Maintains the scroll position for pages that keep their own vertical
+  // document flow when the shared footer changes height.
   const mainRef = useRef<HTMLElement>(null);
   const prevMainHeight = useRef(0);
 
   useEffect(() => {
     const main = mainRef.current;
     if (!main) return;
-    if (pathname === "/game") return;
+    if (isGameRoute || isGroundRoute) return;
     prevMainHeight.current = main.clientHeight;
 
     const observer = new ResizeObserver(() => {
@@ -309,7 +315,7 @@ export default function ClientShell({
 
     observer.observe(main);
     return () => observer.disconnect();
-  }, []);
+  }, [isGameRoute, isGroundRoute]);
 
   return (
     <div className="h-screen w-screen overflow-hidden relative flex flex-col">
@@ -319,7 +325,13 @@ export default function ClientShell({
       >
         <div className="cinematic-shell__grade" />
         <div className="cinematic-shell__grain" />
-        <div className="relative z-[1] flex h-full flex-col">
+        <div
+          className="cinematic-shell__content absolute inset-x-0 bottom-0 z-[1] grid min-h-0 overflow-hidden"
+          style={{
+            top: topOffset,
+            gridTemplateRows: "minmax(0, 1fr) auto",
+          }}
+        >
           <TopBar
             onSignInClick={() => setShowAuthModal(true)}
             authUser={
@@ -359,17 +371,15 @@ export default function ClientShell({
             </motion.div>
           )}
 
-          {/* Content area — flex-1 fills space above footer; shrinks when footer expands */}
-          <main
-            ref={mainRef}
-            className="flex-1 min-h-0 overflow-y-auto z-0"
-            style={{ marginTop: topOffset }}
-          >
+          {/* Allocates the full viewport region between the fixed top bar and the shared footer. */}
+          <main ref={mainRef} className={mainClassName}>
             {children}
           </main>
 
-          {/* Footer — flex-shrink-0 pushes main upward when expanded */}
-          <Footer />
+          {/* Renders the shared footer in the second grid row below the main view. */}
+          <div>
+            <Footer />
+          </div>
         </div>
       </div>
 
