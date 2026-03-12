@@ -28,18 +28,18 @@ const CINEMATIC_FILTERS = [
       "linear-gradient(135deg, rgba(255,208,128,0.46) 0%, rgba(63,40,21,0.68) 36%, rgba(8,8,10,0.96) 100%)",
   },
   {
-    id: "halation",
-    label: "HALO",
-    chip: "BLOOM",
+    id: "thermal",
+    label: "THERM",
+    chip: "HEAT",
     gradient:
-      "linear-gradient(135deg, rgba(255,176,108,0.42) 0%, rgba(0,229,255,0.2) 34%, rgba(14,18,30,0.96) 100%)",
+      "linear-gradient(135deg, rgba(255,196,88,0.32) 0%, rgba(255,92,92,0.24) 30%, rgba(22,30,46,0.96) 100%)",
   },
   {
-    id: "scan",
-    label: "SCAN",
-    chip: "OPS",
+    id: "archive",
+    label: "ARCH",
+    chip: "VAULT",
     gradient:
-      "linear-gradient(135deg, rgba(68,255,212,0.34) 0%, rgba(0,229,255,0.18) 28%, rgba(9,14,18,0.96) 100%)",
+      "linear-gradient(135deg, rgba(238,220,180,0.34) 0%, rgba(132,118,92,0.22) 32%, rgba(19,18,16,0.96) 100%)",
   },
 ] as const;
 

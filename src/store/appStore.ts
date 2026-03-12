@@ -36,7 +36,7 @@ export interface UserPreferences {
   displayName: string;
   preferredUnits: "km" | "mi";
   accentColor: string;
-  cinematicFilter: "standard" | "noir" | "halation" | "scan";
+  cinematicFilter: "standard" | "noir" | "thermal" | "archive";
 }
 
 interface AppState {

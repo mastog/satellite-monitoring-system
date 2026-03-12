@@ -152,8 +152,7 @@ body::after {
 .cinematic-shell {
   position: relative;
   isolation: isolate;
-  filter: none;
-  transition: filter 220ms ease;
+  --cinematic-pass-filter: none;
 }
 
 .cinematic-shell::before {
@@ -191,9 +190,18 @@ body::after {
   mix-blend-mode: soft-light;
 }
 
+.cinematic-shell__content > * {
+  filter: var(--cinematic-pass-filter);
+  transition: filter 220ms ease;
+}
+
 /* Applies the active site-wide filter profile selected from the appearance panel. */
 .cinematic-shell[data-filter="noir"] {
-  filter: grayscale(0.32) sepia(0.28) saturate(0.84) contrast(1.08)
+  --cinematic-pass-filter:
+    grayscale(0.32)
+    sepia(0.28)
+    saturate(0.84)
+    contrast(1.08)
     brightness(0.98);
 }
 
@@ -206,51 +214,67 @@ body::after {
     radial-gradient(100% 90% at 50% 100%, rgba(0,0,0,0.24) 0%, transparent 46%);
 }
 
-/* Adds a brighter lens-bloom profile that keeps the interface readable. */
-.cinematic-shell[data-filter="halation"] {
-  filter: saturate(1.08) contrast(1.04) brightness(0.98);
+/* Applies a false-color thermal profile with higher contrast and clipped cool tones. */
+.cinematic-shell[data-filter="thermal"] {
+  --cinematic-pass-filter:
+    hue-rotate(-18deg)
+    saturate(1.28)
+    contrast(1.16)
+    brightness(0.98);
 }
 
-/* Adds the halation glow field layered over the active interface. */
-.cinematic-shell[data-filter="halation"] .cinematic-shell__grade {
-  opacity: 0.88;
+/* Adds the thermal heat-map glow and scan field layered over the thermal profile. */
+.cinematic-shell[data-filter="thermal"] .cinematic-shell__grade {
+  opacity: 0.94;
   background:
-    radial-gradient(120% 115% at 50% 0%, rgba(255,194,140,0.28) 0%, transparent 42%),
-    radial-gradient(100% 90% at 50% 100%, rgba(0,0,0,0.3) 0%, transparent 48%),
-    linear-gradient(180deg, rgba(255,244,214,0.08) 0%, rgba(0,229,255,0.08) 52%, rgba(12,18,30,0.18) 100%);
-}
-
-/* Boosts the grain layer so the halation profile keeps a filmic texture. */
-.cinematic-shell[data-filter="halation"] .cinematic-shell__grain {
-  opacity: 0.22;
-  mix-blend-mode: screen;
-}
-
-/* Applies the terminal-like scan profile across the active interface. */
-.cinematic-shell[data-filter="scan"] {
-  filter: hue-rotate(-10deg) saturate(1.05) contrast(1.12) brightness(0.95);
-}
-
-/* Layers scan lines and cool highlights over the scan profile. */
-.cinematic-shell[data-filter="scan"] .cinematic-shell__grade {
-  opacity: 0.92;
-  background:
-    linear-gradient(180deg, rgba(12,255,200,0.06) 0%, rgba(0,0,0,0.08) 100%),
+    linear-gradient(180deg, rgba(255,128,64,0.08) 0%, rgba(0,0,0,0.12) 100%),
+    radial-gradient(120% 100% at 18% 10%, rgba(255,224,120,0.22) 0%, transparent 26%),
+    radial-gradient(90% 85% at 82% 20%, rgba(255,94,94,0.22) 0%, transparent 28%),
+    radial-gradient(110% 90% at 50% 100%, rgba(40,100,255,0.18) 0%, transparent 46%),
     repeating-linear-gradient(
       180deg,
       transparent 0px,
-      transparent 3px,
-      rgba(103, 255, 214, 0.07) 3px,
-      rgba(103, 255, 214, 0.07) 4px
-    ),
-    radial-gradient(140% 100% at 50% 0%, rgba(0,229,255,0.12) 0%, transparent 42%),
-    radial-gradient(120% 100% at 50% 100%, rgba(0,0,0,0.3) 0%, transparent 52%);
+      transparent 4px,
+      rgba(255, 184, 77, 0.04) 4px,
+      rgba(255, 184, 77, 0.04) 5px
+    );
 }
 
-/* Raises the grain brightness used by the scan profile. */
-.cinematic-shell[data-filter="scan"] .cinematic-shell__grain {
-  opacity: 0.24;
-  mix-blend-mode: plus-lighter;
+/* Adds a low-frequency thermal noise texture over the thermal profile. */
+.cinematic-shell[data-filter="thermal"] .cinematic-shell__grain {
+  opacity: 0.26;
+  mix-blend-mode: color-dodge;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.68' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+
+/* Applies an archive profile with softer color, lower saturation, and lifted paper whites. */
+.cinematic-shell[data-filter="archive"] {
+  --cinematic-pass-filter:
+    sepia(0.34)
+    saturate(0.7)
+    contrast(0.96)
+    brightness(1.02);
+}
+
+/* Adds aged paper bloom and soft vignette to the archive profile. */
+.cinematic-shell[data-filter="archive"] .cinematic-shell__grade {
+  opacity: 0.86;
+  background:
+    linear-gradient(180deg, rgba(255,244,214,0.15) 0%, rgba(186,160,124,0.06) 42%, rgba(14,12,10,0.18) 100%),
+    radial-gradient(110% 85% at 50% 0%, rgba(255,248,228,0.22) 0%, transparent 38%),
+    radial-gradient(120% 100% at 50% 100%, rgba(34,22,14,0.18) 0%, transparent 54%);
+}
+
+/* Adds an archival paper grain texture over the archive profile. */
+.cinematic-shell[data-filter="archive"] .cinematic-shell__grain {
+  opacity: 0.34;
+  mix-blend-mode: multiply;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='2' seed='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='192' height='192' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='156' height='156' viewBox='0 0 156 156'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.28' numOctaves='4' seed='13' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='156' height='156' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size: 210px 210px, 132px 132px;
 }
 
 /* Defines the shared glass-panel container used by cards and major dashboard surfaces. */
