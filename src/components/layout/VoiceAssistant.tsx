@@ -234,7 +234,12 @@ interface DataCtx {
   userLocation: { lat: number; lng: number } | null;
   points: number;
   totalEarned: number;
-  level: { level: number; name: string; nextThreshold: number | null };
+  level: {
+    level: number;
+    name: string;
+    currentMin: number;
+    nextThreshold: number | null;
+  };
   posts: {
     id: string;
     title: string;
@@ -490,8 +495,12 @@ const queryLevel: QueryMatcher = (words, _raw, ctx) => {
   )
     return null;
   if (hasAny(words, ["point", "points"])) return null; // defer to queryPoints
+  const progress = Math.max(0, ctx.totalEarned - ctx.level.currentMin);
+  const progressSpan = ctx.level.nextThreshold
+    ? ctx.level.nextThreshold - ctx.level.currentMin
+    : 0;
   const pct = ctx.level.nextThreshold
-    ? Math.round((ctx.totalEarned / ctx.level.nextThreshold) * 100)
+    ? Math.round((progress / progressSpan) * 100)
     : 100;
   return {
     label: `Level ${ctx.level.level} — ${ctx.level.name}`,

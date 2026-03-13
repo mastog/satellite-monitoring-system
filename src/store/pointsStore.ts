@@ -17,7 +17,12 @@ interface RefundedItem {
 interface PointsState {
   points: number;
   totalEarned: number;
-  level: { level: number; name: string; nextThreshold: number | null };
+  level: {
+    level: number;
+    name: string;
+    currentMin: number;
+    nextThreshold: number | null;
+  };
   purchases: PurchaseItem[];
   dances: DanceItem[];
   refunded: RefundedItem[];

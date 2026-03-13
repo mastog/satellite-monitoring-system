@@ -29,10 +29,10 @@ const LEVEL_THRESHOLDS: LevelDef[] = [
 export function getLevel(totalEarned: number): {
   level: number;
   name: string;
+  currentMin: number;
   nextThreshold: number | null;
 } {
-  // Walks upward through the thresholds so the user receives the highest level
-  // whose minimum score has already been reached.
+  // Selects the highest level whose minimum threshold is already satisfied.
   let current = LEVEL_THRESHOLDS[0];
   for (const t of LEVEL_THRESHOLDS) {
     if (totalEarned >= t.min) current = t;
@@ -41,7 +41,12 @@ export function getLevel(totalEarned: number): {
     LEVEL_THRESHOLDS.findIndex((t) => t.level === current.level) + 1;
   const nextThreshold =
     nextIdx < LEVEL_THRESHOLDS.length ? LEVEL_THRESHOLDS[nextIdx].min : null;
-  return { level: current.level, name: current.name, nextThreshold };
+  return {
+    level: current.level,
+    name: current.name,
+    currentMin: current.min,
+    nextThreshold,
+  };
 }
 
 export async function awardPoints(
@@ -65,19 +70,18 @@ export async function deductPoints(
   amount: number,
   _reason: string
 ) {
-  // Ignores non-positive values because there is nothing meaningful to deduct.
+  // Skips empty deductions.
   if (amount <= 0) return;
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { points: true, totalEarned: true },
+    select: { points: true },
   });
   if (!user) return;
-  // Clamps both balances at zero so deductions can never create negative totals.
+  // Clamps the spendable balance at zero.
   await prisma.user.update({
     where: { id: userId },
     data: {
       points: Math.max(user.points - amount, 0),
-      totalEarned: Math.max(user.totalEarned - amount, 0),
     },
   });
 }

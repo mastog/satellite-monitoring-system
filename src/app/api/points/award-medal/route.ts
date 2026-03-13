@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/middleware";
-import {
-  awardPoints,
-  deductPoints,
-  POINTS_ACHIEVEMENT,
-} from "@/lib/points/economy";
+import { awardPoints, POINTS_ACHIEVEMENT } from "@/lib/points/economy";
 import { prisma } from "@/lib/prisma";
 
 /**
  * POST /api/points/award-medal
  * Body: { medalId: string }
- * Idempotent — if already awarded, returns { alreadyAwarded: true }.
+ * Records a medal unlock and grants the one-time achievement reward.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing medalId" }, { status: 400 });
     }
 
-    // Check if already awarded (using Purchase table with itemType "medal")
+    // Reads the existing medal history for the requested medal.
     const existing = await prisma.purchase.findFirst({
       where: { userId: user.id, itemType: "medal", itemId: medalId },
     });
@@ -33,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, alreadyAwarded: true });
     }
 
-    // Create the record
+    // Stores the unlocked medal in the purchase-backed medal history.
     await prisma.purchase.create({
       data: {
         id: crypto.randomUUID(),
@@ -44,7 +40,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // ensureOnly: only create the record, no points (used on page load)
+    // Skips the point award when the caller only needs the medal record to exist.
     if (ensureOnly) {
       return NextResponse.json({ success: true, ensured: true });
     }
@@ -62,8 +58,7 @@ export async function POST(req: NextRequest) {
 
 /**
  * DELETE /api/points/award-medal
- * Body: { medalId: string }
- * Revokes a medal — deletes the record and deducts points.
+ * Medal history is permanent once unlocked, so revocation is not supported.
  */
 export async function DELETE(req: NextRequest) {
   try {
@@ -77,17 +72,12 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Missing medalId" }, { status: 400 });
     }
 
-    const existing = await prisma.purchase.findFirst({
-      where: { userId: user.id, itemType: "medal", itemId: medalId },
-    });
-
-    if (!existing) {
-      return NextResponse.json({ success: true, alreadyRevoked: true });
-    }
-
-    await prisma.purchase.delete({ where: { id: existing.id } });
-    await deductPoints(user.id, POINTS_ACHIEVEMENT, `medal-revoke:${medalId}`);
-    return NextResponse.json({ success: true, deducted: POINTS_ACHIEVEMENT });
+    return NextResponse.json(
+      {
+        error: `Medal ${medalId} is permanently recorded once earned`,
+      },
+      { status: 409 }
+    );
   } catch (err) {
     console.error("revoke-medal DELETE error:", err);
     return NextResponse.json(

@@ -28,6 +28,7 @@ export default function ProfileView() {
     setUserPreferences,
     setShowAuthModal,
     trackedSatellites,
+    trackedLoaded,
     satellites,
   } = useAppStore();
 
@@ -41,7 +42,11 @@ export default function ProfileView() {
     if (isAuthenticated) {
       fetchPoints();
       fetchDances();
+      return;
     }
+    setOwnedMedalIds([]);
+    setOwnedMedalsLoaded(false);
+    setEquippedMedals([]);
   }, [isAuthenticated, fetchPoints, fetchDances]);
 
   const voteKeys = useMemo(() => Object.keys(userVotes), [userVotes]);
@@ -57,7 +62,7 @@ export default function ProfileView() {
     [trackedSatellites, satellites]
   );
 
-  const medals = useMemo(
+  const computedMedals = useMemo(
     () =>
       computeMedals(
         trackedSatellites.length,
@@ -67,7 +72,18 @@ export default function ProfileView() {
       ),
     [trackedSatellites.length, trackedNames, voteKeys, sdgVoteCount]
   );
-
+  // Stores the server-recorded medal history used for profile display and equip validation.
+  const [ownedMedalIds, setOwnedMedalIds] = useState<string[]>([]);
+  const [ownedMedalsLoaded, setOwnedMedalsLoaded] = useState(false);
+  const medals = useMemo(
+    () =>
+      computedMedals.map((medal) =>
+        ownedMedalIds.includes(medal.id)
+          ? { ...medal, earned: true, progress: 100 }
+          : medal
+      ),
+    [computedMedals, ownedMedalIds]
+  );
   const earnedCount = medals.filter((m) => m.earned).length;
 
   // Tracks the medal IDs currently equipped on the profile card.
@@ -120,13 +136,14 @@ export default function ProfileView() {
 
   // Synchronizes newly earned medals with the server after the satellite and
   // vote data needed for medal computation has finished loading.
-  const dataReady = isAuthenticated && satellites.length > 0 && votesFetched;
+  const dataReady =
+    isAuthenticated && trackedLoaded && satellites.length > 0 && votesFetched;
   const syncingRef = useRef(false);
   useEffect(() => {
     if (!dataReady || syncingRef.current) return;
     syncingRef.current = true;
 
-    const earnedIds = medals.filter((m) => m.earned).map((m) => m.id);
+    const earnedIds = computedMedals.filter((m) => m.earned).map((m) => m.id);
 
     fetch("/api/points/sync-medals", {
       method: "PUT",
@@ -135,8 +152,12 @@ export default function ProfileView() {
     })
       .then((r) => r.json())
       .then((data) => {
+        if (Array.isArray(data.ownedMedalIds)) {
+          setOwnedMedalIds(data.ownedMedalIds);
+        }
+        setOwnedMedalsLoaded(true);
         // Refreshes points only when the server reports an actual medal change.
-        if (data.awarded > 0 || data.revoked > 0) {
+        if (data.awarded > 0) {
           fetchPoints();
         }
       })
@@ -144,14 +165,13 @@ export default function ProfileView() {
       .finally(() => {
         syncingRef.current = false;
       });
-  }, [dataReady, medals, fetchPoints]);
+  }, [dataReady, computedMedals, fetchPoints]);
 
-  // Removes equipped medals that the user no longer qualifies for and persists
-  // the trimmed selection back to the server.
+  // Removes equipped medals that are no longer present in the user's owned medal history.
   useEffect(() => {
-    if (!dataReady || equippedMedals.length === 0) return;
-    const earnedIds = new Set(medals.filter((m) => m.earned).map((m) => m.id));
-    const valid = equippedMedals.filter((id) => earnedIds.has(id));
+    if (!dataReady || !ownedMedalsLoaded || equippedMedals.length === 0) return;
+    const ownedIds = new Set(ownedMedalIds);
+    const valid = equippedMedals.filter((id) => ownedIds.has(id));
     if (valid.length < equippedMedals.length) {
       setEquippedMedals(valid);
       fetch("/api/user/equipped-medals", {
@@ -160,7 +180,7 @@ export default function ProfileView() {
         body: JSON.stringify({ medalIds: valid }),
       }).catch((e) => console.error("auto-unequip error:", e));
     }
-  }, [dataReady, medals, equippedMedals]);
+  }, [dataReady, ownedMedalsLoaded, ownedMedalIds, equippedMedals]);
 
   // Picks the accent color used to present the player's current level tier.
   const levelColor =
@@ -169,6 +189,11 @@ export default function ProfileView() {
       : level.level >= 3
         ? "var(--holo-purple)"
         : "var(--neon-cyan)";
+  // Computes the experience progress inside the current level band.
+  const levelProgress = Math.max(0, totalEarned - level.currentMin);
+  const levelProgressMax = level.nextThreshold
+    ? level.nextThreshold - level.currentMin
+    : 0;
 
   return (
     <div className="min-h-full p-6 space-y-6 pb-8">
@@ -345,7 +370,7 @@ export default function ProfileView() {
                       fontFamily: "var(--font-fira-code)",
                     }}
                   >
-                    {totalEarned} / {level.nextThreshold} pts
+                    {levelProgress} / {levelProgressMax} pts
                   </span>
                 </div>
                 <div
@@ -357,7 +382,7 @@ export default function ProfileView() {
                     style={{ background: levelColor }}
                     initial={{ width: 0 }}
                     animate={{
-                      width: `${Math.min((totalEarned / level.nextThreshold) * 100, 100)}%`,
+                      width: `${Math.min((levelProgress / levelProgressMax) * 100, 100)}%`,
                     }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
                   />

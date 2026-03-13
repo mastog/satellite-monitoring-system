@@ -47,6 +47,7 @@ interface AppState {
   selectedSatellite: SatelliteData | null;
   setSelectedSatellite: (sat: SatelliteData | null) => void;
   trackedSatellites: string[];
+  trackedLoaded: boolean;
   toggleTracked: (id: string) => void;
 
   // Controls how many non-debris satellites are shown and keeps the shuffle
@@ -56,8 +57,7 @@ interface AppState {
   _densitySeed: number;
   reshuffleSatellites: () => void;
 
-  // Synchronizes the local tracked list with the authenticated user's
-  // persisted server-side preferences.
+  // Stores the tracking list load state and server synchronization actions.
   syncTrackedToServer: () => void;
   loadTrackedFromServer: () => Promise<void>;
 
@@ -119,11 +119,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedSatellite: null,
   setSelectedSatellite: (sat) => set({ selectedSatellite: sat }),
   trackedSatellites: [],
+  trackedLoaded: false,
   toggleTracked: (id) => {
     set((s) => ({
       trackedSatellites: s.trackedSatellites.includes(id)
         ? s.trackedSatellites.filter((t) => t !== id)
         : [...s.trackedSatellites, id],
+      trackedLoaded: true,
     }));
     queueMicrotask(() => get().syncTrackedToServer());
   },
@@ -146,12 +148,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadTrackedFromServer: async () => {
     try {
       const res = await fetch("/api/user/tracked-satellites");
-      if (!res.ok) return;
-      const data = await res.json();
-      if (Array.isArray(data.trackedSatelliteIds)) {
-        set({ trackedSatellites: data.trackedSatelliteIds });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.trackedSatelliteIds)) {
+          set({
+            trackedSatellites: data.trackedSatelliteIds,
+            trackedLoaded: true,
+          });
+          return;
+        }
       }
-    } catch {}
+      set({ trackedLoaded: true });
+    } catch {
+      set({ trackedLoaded: true });
+    }
   },
 
   userLocation: null,
@@ -208,6 +218,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   resetUserState: () =>
     set({
       trackedSatellites: [],
+      trackedLoaded: false,
       selectedSatellite: null,
       userProfile: null,
       _densitySeed: Date.now(),

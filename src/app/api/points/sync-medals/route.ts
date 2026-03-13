@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/middleware";
-import {
-  awardPoints,
-  deductPoints,
-  POINTS_ACHIEVEMENT,
-} from "@/lib/points/economy";
+import { awardPoints, POINTS_ACHIEVEMENT } from "@/lib/points/economy";
 import { prisma } from "@/lib/prisma";
 
 /**
  * PUT /api/points/sync-medals
  * Body: { earnedMedalIds: string[] }
  *
- * Atomic reconciliation — compares the client's earned medal list with
- * the server's Purchase records (itemType "medal") and awards/revokes
- * in a single pass. Fully idempotent.
+ * Persists first-time-earned medals to the server medal history.
  */
 export async function PUT(req: NextRequest) {
   try {
@@ -29,19 +23,19 @@ export async function PUT(req: NextRequest) {
 
     const earnedSet = new Set<string>(earnedMedalIds);
 
-    // Reads the server-side medal purchase records so the request can reconcile against the client's earned set.
+    // Loads the medal history already recorded for the current user.
     const existing = await prisma.purchase.findMany({
       where: { userId: user.id, itemType: "medal" },
+      orderBy: { purchasedAt: "asc" },
     });
     const existingMap = new Map(existing.map((p) => [p.itemId, p.id]));
 
-    // Collects medals that the client says are earned but the server has not yet stored.
+    // Collects medal IDs that are present in the current earned set but absent
+    // from the stored medal history.
     const toAward = [...earnedSet].filter((id) => !existingMap.has(id));
 
-    // Collects medals that exist on the server but are no longer present in the client's earned set.
-    const toRevoke = existing.filter((p) => !earnedSet.has(p.itemId));
-
-    // Creates any missing medal records and grants the associated achievement points.
+    // Appends newly earned medals to the stored history and grants the
+    // achievement reward for each first-time unlock.
     for (const medalId of toAward) {
       await prisma.purchase.create({
         data: {
@@ -55,26 +49,20 @@ export async function PUT(req: NextRequest) {
       await awardPoints(user.id, POINTS_ACHIEVEMENT, `medal:${medalId}`);
     }
 
-    // Removes stale medal records and rolls back the associated achievement points.
-    for (const record of toRevoke) {
-      await prisma.purchase.delete({ where: { id: record.id } });
-      await deductPoints(
-        user.id,
-        POINTS_ACHIEVEMENT,
-        `medal-revoke:${record.itemId}`
-      );
-    }
-
-    // Reloads the current point totals after reconciliation so the client receives authoritative values.
+    // Reloads the progression totals and returns the full owned-medal list.
     const updated = await prisma.user.findUnique({
       where: { id: user.id },
       select: { points: true, totalEarned: true },
     });
+    const ownedMedalIds = [
+      ...new Set([...existing.map((p) => p.itemId), ...toAward]),
+    ];
 
     return NextResponse.json({
       success: true,
       awarded: toAward.length,
-      revoked: toRevoke.length,
+      revoked: 0,
+      ownedMedalIds,
       points: updated?.points ?? 0,
       totalEarned: updated?.totalEarned ?? 0,
     });

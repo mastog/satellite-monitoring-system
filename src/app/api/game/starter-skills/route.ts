@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({
         where: { id: authUser.id },
-        select: { points: true, totalEarned: true },
+        select: { points: true },
       });
       if (!user) throw new Error("USER_NOT_FOUND");
 
@@ -136,10 +136,9 @@ export async function POST(req: NextRequest) {
       });
 
       const nextPoints = Math.max(0, user.points - STARTER_DECRYPT_COST);
-      const nextEarned = Math.max(0, user.totalEarned - STARTER_DECRYPT_COST);
       await tx.user.update({
         where: { id: authUser.id },
-        data: { points: nextPoints, totalEarned: nextEarned },
+        data: { points: nextPoints },
       });
 
       const intelFragments = fragments.length - 1;

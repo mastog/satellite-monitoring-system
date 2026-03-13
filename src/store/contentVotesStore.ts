@@ -16,6 +16,35 @@ interface ContentVotesState {
   reset: () => void;
 }
 
+// Computes the aggregate support percentage represented by the current vote map.
+function getLatestSentimentValue(
+  counts: Record<string, { support: number; oppose: number }>
+): number {
+  let support = 0;
+  let oppose = 0;
+
+  for (const value of Object.values(counts)) {
+    support += value.support;
+    oppose += value.oppose;
+  }
+
+  const total = support + oppose;
+  return total > 0 ? Math.round((support / total) * 100) : 50;
+}
+
+// Replaces the most recent point in the sentiment series with the latest
+// aggregate support percentage.
+function applyLatestSentimentPoint(
+  trend: number[] | null,
+  counts: Record<string, { support: number; oppose: number }>
+): number[] | null {
+  if (!trend || trend.length === 0) return trend;
+
+  const nextTrend = [...trend];
+  nextTrend[nextTrend.length - 1] = getLatestSentimentValue(counts);
+  return nextTrend;
+}
+
 export const useContentVotesStore = create<ContentVotesState>((set, get) => ({
   counts: {},
   userVotes: {},
@@ -74,7 +103,11 @@ export const useContentVotesStore = create<ContentVotesState>((set, get) => ({
       newUserVotes[targetId] = vote;
     }
     newCounts[targetId] = c;
-    set({ counts: newCounts, userVotes: newUserVotes });
+    set({
+      counts: newCounts,
+      userVotes: newUserVotes,
+      sentimentTrend: applyLatestSentimentPoint(get().sentimentTrend, newCounts),
+    });
 
     try {
       await fetch("/api/content-votes", {
@@ -85,7 +118,11 @@ export const useContentVotesStore = create<ContentVotesState>((set, get) => ({
       get().fetchSentimentTrend();
     } catch {
       // Restores the previous counts and vote selection if the request fails.
-      set({ counts, userVotes });
+      set({
+        counts,
+        userVotes,
+        sentimentTrend: applyLatestSentimentPoint(get().sentimentTrend, counts),
+      });
     }
   },
 
