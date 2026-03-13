@@ -1133,11 +1133,12 @@ export default function VoiceAssistant() {
           : "var(--text-dim)";
 
   return (
-    <div className="relative">
+    <div className="relative voice-assistant-trigger">
       {/* Opens the assistant panel and reflects whether listening is currently active. */}
       <button
         onClick={toggleOpen}
-        className="relative w-7 h-7 rounded-full flex items-center justify-center transition-all"
+        className="topbar-hover-btn topbar-icon-btn relative z-[1] w-7 h-7 rounded-md flex items-center justify-center"
+        data-active={open ? "true" : "false"}
         style={{
           background: open
             ? "var(--neon-cyan-dim)"
@@ -1149,6 +1150,9 @@ export default function VoiceAssistant() {
         }}
         title="Voice Assistant"
       >
+        <span className="topbar-hover-btn__scan" />
+        <span className="topbar-hover-btn__edge topbar-hover-btn__edge--left" />
+        <span className="topbar-hover-btn__edge topbar-hover-btn__edge--right" />
         {listening ? (
           <motion.div
             animate={{ scale: [1, 1.2, 1] }}
@@ -1179,15 +1183,26 @@ export default function VoiceAssistant() {
             <line x1="8" y1="23" x2="16" y2="23" />
           </svg>
         )}
-        {open && (
-          <motion.div
-            className="absolute inset-0 rounded-full"
-            style={{ border: "1px solid var(--neon-cyan)" }}
-            animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          />
-        )}
       </button>
+      {open && (
+        <>
+          <motion.div
+            className="voice-assistant-trigger__ring voice-assistant-trigger__ring--outer"
+            animate={{ scale: [0.96, 1.34], opacity: [0.4, 0] }}
+            transition={{ duration: 1.45, repeat: Infinity, ease: "easeOut" }}
+          />
+          <motion.div
+            className="voice-assistant-trigger__ring voice-assistant-trigger__ring--inner"
+            animate={{ scale: [0.98, 1.18], opacity: [0.3, 0] }}
+            transition={{
+              duration: 1.1,
+              repeat: Infinity,
+              ease: "easeOut",
+              delay: 0.18,
+            }}
+          />
+        </>
+      )}
 
       {/* Hosts the full assistant interface, including controls, transcript, result, and hints. */}
       <AnimatePresence>

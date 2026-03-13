@@ -444,6 +444,870 @@ body::after {
   left: 100%;
 }
 
+/* Defines the shared hover treatment used by top-bar navigation and utility controls. */
+.topbar-hover-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transform: translateZ(0);
+  transition:
+    color 180ms var(--ease-out-expo),
+    background-color 180ms var(--ease-out-expo),
+    border-color 180ms var(--ease-out-expo),
+    box-shadow 220ms var(--ease-out-expo),
+    transform 220ms var(--ease-spring);
+}
+
+.topbar-hover-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  opacity: 0;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent) 10%, transparent) 0%,
+      rgba(9, 14, 24, 0.88) 46%,
+      color-mix(in srgb, var(--accent) 18%, transparent) 100%
+    );
+  transition: opacity 180ms var(--ease-out-expo);
+}
+
+.topbar-hover-btn::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  opacity: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      110deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.16) 18%,
+      transparent 34%,
+      transparent 58%,
+      color-mix(in srgb, var(--accent) 22%, transparent) 74%,
+      transparent 100%
+    );
+  transform: translateX(-24%) skewX(-16deg);
+  transition:
+    opacity 180ms var(--ease-out-expo),
+    transform 320ms var(--ease-out-expo);
+}
+
+.topbar-hover-btn:hover,
+.topbar-hover-btn:focus-visible {
+  transform: translateY(-1px);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.34),
+    0 0 0 1px color-mix(in srgb, var(--accent) 14%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.topbar-hover-btn:hover::before,
+.topbar-hover-btn:focus-visible::before {
+  opacity: 1;
+}
+
+.topbar-hover-btn:hover::after,
+.topbar-hover-btn:focus-visible::after {
+  opacity: 1;
+  transform: translateX(14%) skewX(-16deg);
+}
+
+.topbar-hover-btn:focus-visible {
+  outline: none;
+}
+
+/* Adds a compact scanline field behind active or hovered top-bar controls. */
+.topbar-hover-btn__scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      transparent 28%,
+      transparent 72%,
+      rgba(255, 255, 255, 0.04) 100%
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0px,
+      transparent 4px,
+      color-mix(in srgb, var(--accent) 5%, transparent) 4px,
+      color-mix(in srgb, var(--accent) 5%, transparent) 5px
+    );
+  transition: opacity 180ms var(--ease-out-expo);
+}
+
+.topbar-hover-btn:hover .topbar-hover-btn__scan,
+.topbar-hover-btn:focus-visible .topbar-hover-btn__scan,
+.topbar-hover-btn[data-active="true"] .topbar-hover-btn__scan {
+  opacity: 1;
+}
+
+/* Adds accent rails that brighten from the edges during hover and focus. */
+.topbar-hover-btn__edge {
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  width: 1px;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--accent) 74%, transparent) 24%,
+    rgba(255, 255, 255, 0.68) 50%,
+    color-mix(in srgb, var(--accent) 74%, transparent) 76%,
+    transparent 100%
+  );
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 22%, transparent);
+  transition:
+    opacity 180ms var(--ease-out-expo),
+    transform 220ms var(--ease-out-expo);
+}
+
+.topbar-hover-btn__edge--left {
+  left: 0;
+  transform: translateX(-4px);
+}
+
+.topbar-hover-btn__edge--right {
+  right: 0;
+  transform: translateX(4px);
+}
+
+.topbar-hover-btn:hover .topbar-hover-btn__edge,
+.topbar-hover-btn:focus-visible .topbar-hover-btn__edge,
+.topbar-hover-btn[data-active="true"] .topbar-hover-btn__edge {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Styles the compact top-bar nav buttons as instrument-like toggles. */
+.topbar-nav-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px transparent;
+}
+
+.topbar-nav-btn:hover,
+.topbar-nav-btn:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text-primary);
+}
+
+.topbar-nav-btn[data-active="true"] {
+  border-color: color-mix(in srgb, var(--accent) 22%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent) 16%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 5%, transparent) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, rgba(255, 255, 255, 0.09) 100%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Renders the recessed active plate used by the current navigation item. */
+.topbar-nav-btn__plate {
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.02) 24%,
+      transparent 25%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent) 14%, transparent) 0%,
+      rgba(8, 12, 20, 0.54) 52%,
+      color-mix(in srgb, var(--accent) 8%, transparent) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -10px 20px rgba(0, 0, 0, 0.14);
+  transition: opacity 180ms var(--ease-out-expo);
+}
+
+.topbar-nav-btn__spark {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  z-index: 1;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  background: var(--accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 34%, transparent);
+  transition: opacity 180ms var(--ease-out-expo);
+}
+
+.topbar-nav-btn[data-active="true"] .topbar-nav-btn__plate,
+.topbar-nav-btn[data-active="true"] .topbar-nav-btn__spark {
+  opacity: 1;
+}
+
+/* Styles the compact square and circular top-bar icon buttons. */
+.topbar-icon-btn {
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.topbar-icon-btn:hover,
+.topbar-icon-btn:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+
+.topbar-icon-btn[data-active="true"] {
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+/* Styles the signed-in account cluster as a unified session control strip. */
+.topbar-profile-rig {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr) 0fr;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  width: 12.1rem;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.02) 0%,
+      rgba(10, 13, 20, 0.88) 42%,
+      rgba(7, 9, 15, 0.99) 100%
+    );
+  border: 0;
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  transition:
+    grid-template-columns 320ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 240ms ease,
+    border-color 220ms ease;
+}
+
+.topbar-profile-rig::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.025);
+  pointer-events: none;
+  transition:
+    border-color 220ms ease,
+    opacity 220ms ease;
+}
+
+.topbar-profile-rig:hover,
+.topbar-profile-rig:focus-within {
+  grid-template-columns: minmax(0, 1fr) 3.34rem;
+  transform: translateY(-1px);
+  box-shadow:
+    0 16px 30px rgba(0, 0, 0, 0.22);
+}
+
+.topbar-profile-rig:hover::before,
+.topbar-profile-rig:focus-within::before {
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Draws the animated edge trace used by the session controls. */
+.topbar-session-trace {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.topbar-session-trace svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.topbar-session-trace path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 68%, rgba(255, 255, 255, 0.24));
+  stroke-width: 1.15;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+  stroke-dasharray: 0 100;
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 20%, transparent));
+  transition: stroke-dasharray 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.topbar-profile-rig:hover .topbar-session-trace path,
+.topbar-profile-rig:focus-within .topbar-session-trace path,
+.topbar-signin-chip:hover .topbar-session-trace path,
+.topbar-signin-chip:focus-visible .topbar-session-trace path {
+  stroke-dasharray: 100 0;
+}
+
+.topbar-profile-main {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  width: auto;
+  align-items: center;
+  gap: 0.78rem;
+  height: 100%;
+  min-height: 0;
+  padding: 0.4rem 0.86rem 0.4rem 0.4rem;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms ease,
+    background 220ms ease,
+    padding-right 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.topbar-profile-main:hover,
+.topbar-profile-main:focus-visible {
+  transform: none;
+  box-shadow: none;
+}
+
+.topbar-profile-rig:hover .topbar-profile-main,
+.topbar-profile-rig:focus-within .topbar-profile-main {
+  padding-right: 0.62rem;
+  border-radius: 999px 0 0 999px;
+}
+
+.topbar-profile-main__crest {
+  position: relative;
+  display: inline-flex;
+  width: 2.22rem;
+  height: 2.22rem;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 0.82rem;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent) 14%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 8%, transparent) 100%
+    );
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.topbar-profile-main__avatar {
+  position: relative;
+  display: inline-flex;
+  width: 1.34rem;
+  height: 1.34rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.48rem;
+  background:
+    radial-gradient(
+      circle at 30% 30%,
+      color-mix(in srgb, var(--accent) 28%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 12%, transparent) 100%
+    );
+  color: var(--accent);
+  font-family: var(--font-orbitron);
+  font-size: 0.74rem;
+  font-weight: 800;
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--accent) 14%, transparent);
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms ease;
+}
+
+.topbar-profile-rig:hover .topbar-profile-main__avatar,
+.topbar-profile-rig:focus-within .topbar-profile-main__avatar {
+  transform: scale(1.03);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 20px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.topbar-profile-main__meta {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+}
+
+.topbar-profile-main__eyebrow {
+  font-size: 0.45rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: color-mix(in srgb, var(--text-dim) 88%, var(--accent));
+}
+
+.topbar-profile-main__value {
+  max-width: 6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+  transition:
+    max-width 320ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 220ms ease;
+}
+
+.topbar-profile-rig:hover .topbar-profile-main__value,
+.topbar-profile-rig:focus-within .topbar-profile-main__value {
+  max-width: 4.2rem;
+}
+
+.topbar-profile-out {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  gap: 0;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 107, 44, 0.04) 34%,
+      rgba(255, 107, 44, 0.12) 72%,
+      rgba(255, 107, 44, 0.2) 100%
+    );
+  color: color-mix(in srgb, var(--neon-orange) 68%, var(--text-primary));
+  cursor: pointer;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  justify-content: center;
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms ease,
+    color 220ms ease,
+    opacity 180ms ease,
+    background 220ms ease;
+  transform: translateX(0.48rem);
+}
+
+.topbar-profile-out:hover,
+.topbar-profile-out:focus-visible {
+  transform: translateX(0);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+}
+
+.topbar-profile-rig:hover .topbar-profile-out,
+.topbar-profile-rig:focus-within .topbar-profile-out {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+  color: color-mix(in srgb, var(--neon-orange) 84%, var(--text-primary));
+}
+
+.topbar-profile-out__glyph {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: 1.34rem;
+  height: 1.34rem;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+  background: transparent;
+  transform: translateX(0);
+}
+
+.topbar-profile-out::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 107, 44, 0) 0%,
+      rgba(255, 107, 44, 0.08) 42%,
+      rgba(255, 170, 120, 0.18) 100%
+    );
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.topbar-profile-rig:hover .topbar-profile-out::before,
+.topbar-profile-rig:focus-within .topbar-profile-out::before {
+  opacity: 1;
+}
+
+.topbar-profile-out__beam {
+  display: none;
+}
+
+/* Matches the signed-in control size when only the sign-in action is available. */
+.topbar-signin-chip {
+  position: relative;
+  display: inline-flex;
+  width: 12.1rem;
+  min-width: 12.1rem;
+  max-width: 12.1rem;
+  align-items: center;
+  gap: 0.78rem;
+  padding: 0.4rem 0.86rem 0.4rem 0.4rem;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.02) 0%,
+      rgba(10, 13, 20, 0.88) 42%,
+      rgba(7, 9, 15, 0.99) 100%
+    );
+  color: var(--text-primary);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms ease;
+}
+
+.topbar-signin-chip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.025);
+  pointer-events: none;
+}
+
+.topbar-signin-chip:hover,
+.topbar-signin-chip:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.22);
+}
+
+/* Styles the UTC clock as a segmented chronometer module. */
+.topbar-clock-rig {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.48rem;
+  min-width: auto;
+  padding: 0.2rem 0 0.2rem 0;
+  border-radius: 1rem;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(8, 12, 20, 0.14) 18%,
+      rgba(8, 12, 20, 0.5) 62%,
+      rgba(8, 12, 20, 0.08) 100%
+    );
+}
+
+.topbar-clock-rig__readout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.18rem;
+  text-align: right;
+}
+
+.topbar-clock-rig__dial {
+  position: relative;
+  width: 1.55rem;
+  height: 1.55rem;
+  display: block;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      color-mix(in srgb, var(--accent) 16%, transparent) 0%,
+      rgba(8, 12, 20, 0.92) 68%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 14px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.topbar-clock-rig__ticks {
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  background:
+    conic-gradient(
+      from 0deg,
+      color-mix(in srgb, var(--accent) 22%, transparent) 0deg 6deg,
+      transparent 6deg 30deg,
+      color-mix(in srgb, var(--accent) 16%, transparent) 30deg 34deg,
+      transparent 34deg 60deg,
+      color-mix(in srgb, var(--accent) 22%, transparent) 60deg 66deg,
+      transparent 66deg 90deg,
+      color-mix(in srgb, var(--accent) 16%, transparent) 90deg 94deg,
+      transparent 94deg 120deg,
+      color-mix(in srgb, var(--accent) 22%, transparent) 120deg 126deg,
+      transparent 126deg 150deg,
+      color-mix(in srgb, var(--accent) 16%, transparent) 150deg 154deg,
+      transparent 154deg 180deg,
+      color-mix(in srgb, var(--accent) 22%, transparent) 180deg 186deg,
+      transparent 186deg 210deg,
+      color-mix(in srgb, var(--accent) 16%, transparent) 210deg 214deg,
+      transparent 214deg 240deg,
+      color-mix(in srgb, var(--accent) 22%, transparent) 240deg 246deg,
+      transparent 246deg 270deg,
+      color-mix(in srgb, var(--accent) 16%, transparent) 270deg 274deg,
+      transparent 274deg 300deg,
+      color-mix(in srgb, var(--accent) 22%, transparent) 300deg 306deg,
+      transparent 306deg 330deg,
+      color-mix(in srgb, var(--accent) 16%, transparent) 330deg 334deg,
+      transparent 334deg 360deg
+    );
+  mask: radial-gradient(circle, transparent 56%, #000 58%);
+  opacity: 0.7;
+}
+
+.topbar-clock-rig__dial::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 18%, transparent);
+  animation: topbarOrbitSpin 14s linear infinite;
+}
+
+.topbar-clock-rig__hand {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  border-radius: 999px;
+  transform-origin: 50% 100%;
+}
+
+.topbar-clock-rig__hand--hour {
+  width: 2px;
+  height: 0.44rem;
+  background: color-mix(in srgb, var(--text-primary) 90%, var(--accent));
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.topbar-clock-rig__hand--second {
+  width: 1px;
+  height: 0.7rem;
+  background: var(--neon-orange);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--neon-orange) 18%, transparent);
+}
+
+.topbar-clock-rig__pivot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.topbar-clock-rig__label {
+  display: block;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.topbar-clock-rig__time {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.14rem;
+}
+
+/* Builds the early digital-clock style display with seven independent segments per digit. */
+.seven-seg-digit {
+  position: relative;
+  width: 0.74rem;
+  height: 1.18rem;
+  border-radius: 0.44rem;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0%,
+      rgba(8, 12, 20, 0.86) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 6px 12px rgba(0, 0, 0, 0.12);
+}
+
+.seven-seg-digit__segment {
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(88, 108, 138, 0.52);
+  box-shadow:
+    inset 0 0 4px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(122, 148, 182, 0.08);
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    opacity 120ms ease;
+}
+
+.seven-seg-digit__segment[data-on="true"] {
+  background: color-mix(in srgb, var(--accent) 82%, white);
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--accent) 22%, transparent),
+    inset 0 0 3px rgba(255, 255, 255, 0.32);
+}
+
+.seven-seg-digit__segment--a,
+.seven-seg-digit__segment--d,
+.seven-seg-digit__segment--g {
+  left: 0.14rem;
+  width: 0.46rem;
+  height: 0.1rem;
+}
+
+.seven-seg-digit__segment--a {
+  top: 0.14rem;
+}
+
+.seven-seg-digit__segment--g {
+  top: 0.54rem;
+}
+
+.seven-seg-digit__segment--d {
+  bottom: 0.14rem;
+}
+
+.seven-seg-digit__segment--b,
+.seven-seg-digit__segment--c,
+.seven-seg-digit__segment--e,
+.seven-seg-digit__segment--f {
+  width: 0.1rem;
+  height: 0.36rem;
+}
+
+.seven-seg-digit__segment--b,
+.seven-seg-digit__segment--c {
+  right: 0.12rem;
+}
+
+.seven-seg-digit__segment--e,
+.seven-seg-digit__segment--f {
+  left: 0.12rem;
+}
+
+.seven-seg-digit__segment--f {
+  top: 0.18rem;
+}
+
+.seven-seg-digit__segment--b {
+  top: 0.18rem;
+}
+
+.seven-seg-digit__segment--e {
+  bottom: 0.18rem;
+}
+
+.seven-seg-digit__segment--c {
+  bottom: 0.18rem;
+}
+
+.seven-seg-separator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.24rem;
+  height: 1.18rem;
+  position: relative;
+}
+
+.seven-seg-separator::before,
+.seven-seg-separator::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 0.1rem;
+  height: 0.1rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 82%, white);
+  transform: translateX(-50%);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.seven-seg-separator::before {
+  top: 0.32rem;
+}
+
+.seven-seg-separator::after {
+  bottom: 0.32rem;
+}
+
+@keyframes topbarOrbitSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Allows the assistant trigger rings to expand outside the button frame. */
+.voice-assistant-trigger {
+  overflow: visible;
+}
+
+.voice-assistant-trigger__ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 0.95rem;
+  pointer-events: none;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.08);
+}
+
+.voice-assistant-trigger__ring--outer {
+  inset: -9px;
+  border-color: rgba(0, 229, 255, 0.18);
+}
+
+.voice-assistant-trigger__ring--inner {
+  inset: -4px;
+  border-color: rgba(0, 229, 255, 0.34);
+}
+
 /* Styles large numeric stat values so dashboard metrics align consistently. */
 .stat-value {
   font-variant-numeric: tabular-nums;

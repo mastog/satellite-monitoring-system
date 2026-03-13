@@ -173,6 +173,37 @@ interface TopBarProps {
   onLogout?: () => void;
 }
 
+/* Maps each numeric glyph to the segments used by the seven-segment UTC display. */
+const SEGMENT_MAP: Record<string, string[]> = {
+  "0": ["a", "b", "c", "d", "e", "f"],
+  "1": ["b", "c"],
+  "2": ["a", "b", "g", "e", "d"],
+  "3": ["a", "b", "c", "d", "g"],
+  "4": ["f", "g", "b", "c"],
+  "5": ["a", "f", "g", "c", "d"],
+  "6": ["a", "f", "g", "e", "c", "d"],
+  "7": ["a", "b", "c"],
+  "8": ["a", "b", "c", "d", "e", "f", "g"],
+  "9": ["a", "b", "c", "d", "f", "g"],
+};
+
+/* Renders one digit inside the segmented UTC readout. */
+function SevenSegmentDigit({ value }: { value: string }) {
+  const activeSegments = SEGMENT_MAP[value] ?? [];
+
+  return (
+    <span className="seven-seg-digit" aria-hidden="true">
+      {["a", "b", "c", "d", "e", "f", "g"].map((segment) => (
+        <span
+          key={segment}
+          className={`seven-seg-digit__segment seven-seg-digit__segment--${segment}`}
+          data-on={activeSegments.includes(segment) ? "true" : "false"}
+        />
+      ))}
+    </span>
+  );
+}
+
 export default function TopBar({
   onSignInClick,
   authUser,
@@ -191,6 +222,13 @@ export default function TopBar({
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const hours = time ? time.getUTCHours() : 0;
+  const minutes = time ? time.getUTCMinutes() : 0;
+  const seconds = time ? time.getUTCSeconds() : 0;
+  const hourAngle = hours * 30 + minutes * 0.5;
+  const secondAngle = seconds * 6;
+  const timeDisplay = time ? time.toISOString().substring(11, 19) : "--:--:--";
 
   return (
     <motion.header
@@ -268,11 +306,15 @@ export default function TopBar({
             <button
               key={item.id}
               onClick={() => router.push(item.path)}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors"
+              className="topbar-hover-btn topbar-nav-btn relative flex items-center gap-1.5 px-3 py-1.5 rounded-md"
+              data-active={isActive ? "true" : "false"}
               style={{
                 color: isActive ? "var(--accent)" : "var(--text-secondary)",
               }}
             >
+              <span className="topbar-hover-btn__scan" />
+              <span className="topbar-hover-btn__edge topbar-hover-btn__edge--left" />
+              <span className="topbar-hover-btn__edge topbar-hover-btn__edge--right" />
               {item.icon}
               <span
                 className="text-[14px] font-bold tracking-[0.1em]"
@@ -280,17 +322,8 @@ export default function TopBar({
               >
                 {item.label}
               </span>
-              {isActive && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full"
-                  style={{
-                    background: "var(--accent)",
-                    boxShadow: "0 0 8px var(--accent-glow)",
-                  }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-              )}
+              <span className="topbar-nav-btn__plate" />
+              <span className="topbar-nav-btn__spark" />
             </button>
           );
         })}
@@ -310,13 +343,17 @@ export default function TopBar({
           <button
             ref={appearanceBtnRef}
             onClick={() => setShowAppearance(!showAppearance)}
-            className="w-7 h-7 rounded-md flex items-center justify-center transition-all duration-200 cursor-pointer"
+            className="topbar-hover-btn topbar-icon-btn w-7 h-7 rounded-md flex items-center justify-center cursor-pointer"
+            data-active={showAppearance ? "true" : "false"}
             style={{
               background: showAppearance ? "var(--accent-dim)" : "transparent",
-              border: showAppearance ? "1px solid var(--accent)" : "none",
+              border: showAppearance ? "1px solid var(--accent)" : undefined,
             }}
             title="Appearance"
           >
+            <span className="topbar-hover-btn__scan" />
+            <span className="topbar-hover-btn__edge topbar-hover-btn__edge--left" />
+            <span className="topbar-hover-btn__edge topbar-hover-btn__edge--right" />
             <svg
               width="14"
               height="14"
@@ -359,28 +396,53 @@ export default function TopBar({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center gap-2"
+              className="topbar-profile-rig"
             >
+              <span className="topbar-session-trace" aria-hidden="true">
+                <svg viewBox="0 0 194 48" preserveAspectRatio="none">
+                  <path
+                    pathLength="100"
+                    d="M1 24A23 23 0 0 1 24 1H170A23 23 0 0 1 193 24A23 23 0 0 1 170 47H24A23 23 0 0 1 1 24Z"
+                  />
+                </svg>
+              </span>
               <button
                 onClick={navigateToProfile}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[14px] font-bold cursor-pointer transition-all"
-                style={{
-                  background: "var(--accent-dim)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
-                  color: "var(--accent)",
-                  fontFamily: "var(--font-orbitron)",
-                }}
+                className="topbar-profile-main"
                 title="My Profile"
               >
-                {authUser.name.charAt(0).toUpperCase()}
+                <span className="topbar-profile-main__crest">
+                  <span className="topbar-profile-main__avatar">
+                    {authUser.name.charAt(0).toUpperCase()}
+                  </span>
+                </span>
+                <span className="topbar-profile-main__meta">
+                  <span className="topbar-profile-main__eyebrow">PILOT ACCESS</span>
+                  <span className="topbar-profile-main__value">
+                    {authUser.name}
+                  </span>
+                </span>
               </button>
               <button
                 onClick={onLogout}
-                className="text-[13px] font-bold tracking-wider uppercase transition-colors"
-                style={{ color: "var(--text-dim)" }}
+                className="topbar-profile-out"
+                title="Sign out"
               >
-                OUT
+                <span className="topbar-profile-out__glyph">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4" />
+                    <path d="M16 17l5-5-5-5" />
+                    <path d="M21 12H9" />
+                  </svg>
+                </span>
+                <span className="topbar-profile-out__beam" />
               </button>
             </motion.div>
           ) : (
@@ -390,35 +452,55 @@ export default function TopBar({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onSignInClick}
-              className="cyber-btn !py-1.5 !px-3 !text-[13px]"
+              className="topbar-signin-chip"
             >
-              SIGN IN
+              <span className="topbar-session-trace" aria-hidden="true">
+                <svg viewBox="0 0 194 48" preserveAspectRatio="none">
+                  <path
+                    pathLength="100"
+                    d="M1 24A23 23 0 0 1 24 1H170A23 23 0 0 1 193 24A23 23 0 0 1 170 47H24A23 23 0 0 1 1 24Z"
+                  />
+                </svg>
+              </span>
+              <span className="topbar-profile-main__crest">
+                <span className="topbar-profile-main__avatar">S</span>
+              </span>
+              <span className="topbar-profile-main__meta">
+                <span className="topbar-profile-main__eyebrow">SESSION</span>
+                <span className="topbar-profile-main__value">SIGN IN</span>
+              </span>
             </motion.button>
           )}
         </AnimatePresence>
 
-        <div
-          className="h-6 w-px"
-          style={{ background: "var(--border-subtle)" }}
-        />
-
         {/* Displays the live UTC clock used throughout the application's monitoring views. */}
-        <div className="text-right">
-          <div
-            className="text-[13px] tracking-[0.12em] uppercase"
-            style={{ color: "var(--text-dim)" }}
-          >
-            UTC
+        <div className="topbar-clock-rig">
+          <div className="topbar-clock-rig__readout">
+            <span className="topbar-clock-rig__label">UTC</span>
+            <div className="topbar-clock-rig__time" aria-label={timeDisplay}>
+              {timeDisplay.split("").map((char, index) =>
+                char === ":" ? (
+                  <span key={`sep-${index}`} className="seven-seg-separator" />
+                ) : (
+                  <SevenSegmentDigit key={`${char}-${index}`} value={char} />
+                )
+              )}
+            </div>
           </div>
-          <div
-            className="text-[15px] font-mono font-semibold"
-            style={{
-              fontFamily: "var(--font-fira-code)",
-              color: "var(--text-primary)",
-            }}
-          >
-            {time ? time.toISOString().substring(11, 19) : "--:--:--"}
-          </div>
+          <span className="topbar-clock-rig__dial">
+            <span className="topbar-clock-rig__ticks" />
+            <span
+              className="topbar-clock-rig__hand topbar-clock-rig__hand--hour"
+              style={{ transform: `translateX(-50%) rotate(${hourAngle}deg)` }}
+            />
+            <span
+              className="topbar-clock-rig__hand topbar-clock-rig__hand--second"
+              style={{
+                transform: `translateX(-50%) rotate(${secondAngle}deg)`,
+              }}
+            />
+            <span className="topbar-clock-rig__pivot" />
+          </span>
         </div>
       </div>
     </motion.header>

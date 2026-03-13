@@ -103,7 +103,8 @@ export default function NotificationBell() {
       <button
         ref={buttonRef}
         onClick={toggleOpen}
-        className="relative flex items-center justify-center w-7 h-7 rounded-md transition-all"
+        className="topbar-hover-btn topbar-icon-btn relative flex items-center justify-center w-7 h-7 rounded-md"
+        data-active={isOpen ? "true" : "false"}
         style={{
           background: isOpen ? "rgba(0,229,255,0.08)" : "transparent",
           border: isOpen ? "1px solid rgba(0,229,255,0.3)" : "none",
@@ -111,6 +112,9 @@ export default function NotificationBell() {
         }}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
       >
+        <span className="topbar-hover-btn__scan" />
+        <span className="topbar-hover-btn__edge topbar-hover-btn__edge--left" />
+        <span className="topbar-hover-btn__edge topbar-hover-btn__edge--right" />
         <svg
           width="14"
           height="14"
