@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPostById, toggleVote, getVoteCounts } from "@/lib/posts/db";
 import { getAuthUser } from "@/lib/auth/middleware";
+import {
+  awardPoints,
+  penalizePointsAndExperience,
+  POINTS_VOTE,
+} from "@/lib/points/economy";
 
 export async function POST(
   req: NextRequest,
@@ -31,6 +36,15 @@ export async function POST(
 
     const result = await toggleVote(user.id, id, "post", vote);
     const counts = await getVoteCounts(id);
+    if (result.action === "added") {
+      awardPoints(user.id, POINTS_VOTE, "post-vote").catch((e) =>
+        console.error("award points error:", e)
+      );
+    } else if (result.action === "removed") {
+      penalizePointsAndExperience(user.id, POINTS_VOTE, "post-vote-removed").catch(
+        (e) => console.error("penalty points error:", e)
+      );
+    }
 
     return NextResponse.json({ ...result, counts });
   } catch (err) {

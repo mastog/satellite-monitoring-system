@@ -7,6 +7,10 @@ import {
 } from "@/lib/posts/db";
 import { getAuthUser } from "@/lib/auth/middleware";
 import { autoTagText } from "@/lib/posts/autoTag";
+import {
+  penalizePointsAndExperience,
+  POINTS_POST,
+} from "@/lib/points/economy";
 
 export async function GET(
   _req: NextRequest,
@@ -95,6 +99,7 @@ export async function DELETE(
     }
 
     await deletePost(id);
+    await penalizePointsAndExperience(user.id, POINTS_POST, "post-deleted");
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Post [id] API error:", err);

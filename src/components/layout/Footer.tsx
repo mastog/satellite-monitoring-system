@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/store/authStore";
@@ -91,10 +91,14 @@ const EXTERNAL_LINKS = [
   { label: "NASA", href: "https://www.nasa.gov/" },
 ];
 
-export default function Footer() {
+interface FooterProps {
+  expanded: boolean;
+  onToggle: () => void;
+}
+
+export default function Footer({ expanded, onToggle }: FooterProps) {
   const { user } = useAuthStore();
   const isAdmin = user?.role === "admin";
-  const [expanded, setExpanded] = useState(false);
 
   const scrollToTop = useCallback(() => {
     // The scrollable container is the <main> parent of this footer
@@ -111,7 +115,7 @@ export default function Footer() {
     >
       {/* ─── Collapsed: thin luminous trigger strip ─── */}
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={onToggle}
         className="group relative w-full flex items-center justify-center cursor-pointer"
         style={{ height: 28 }}
         aria-label={expanded ? "Collapse footer" : "Expand footer"}
@@ -170,9 +174,11 @@ export default function Footer() {
           <span
             className="text-[10px] tracking-[0.2em] uppercase transition-colors duration-200 select-none"
             style={{
-              color: "var(--text-dim)",
+              color: expanded
+                ? "color-mix(in srgb, var(--text-primary) 78%, var(--accent))"
+                : "color-mix(in srgb, var(--text-primary) 72%, var(--accent))",
               fontFamily: "var(--font-fira-code)",
-              opacity: 0.5,
+              opacity: expanded ? 0.9 : 0.78,
             }}
           >
             {expanded ? "CLOSE" : "SMS"}

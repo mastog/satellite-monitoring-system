@@ -85,3 +85,25 @@ export async function deductPoints(
     },
   });
 }
+
+export async function penalizePointsAndExperience(
+  userId: string,
+  amount: number,
+  _reason: string
+) {
+  // Skips empty penalties.
+  if (amount <= 0) return;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { points: true, totalEarned: true },
+  });
+  if (!user) return;
+  // Clamps both the spendable balance and the earned total at zero.
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      points: Math.max(user.points - amount, 0),
+      totalEarned: Math.max(user.totalEarned - amount, 0),
+    },
+  });
+}

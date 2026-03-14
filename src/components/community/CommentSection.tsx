@@ -442,15 +442,18 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             className="text-center py-4 text-[15px] tracking-wide"
             style={{ color: "var(--text-dim)" }}
           >
-            <span
+            <button
+              type="button"
+              onClick={() => setShowAuthModal(true)}
               style={{
                 color: "var(--neon-cyan)",
                 fontFamily: "var(--font-orbitron)",
                 fontSize: "14px",
+                cursor: "pointer",
               }}
             >
               Sign in
-            </span>{" "}
+            </button>{" "}
             to comment
           </div>
         )}

@@ -171,6 +171,7 @@ interface TopBarProps {
   onSignInClick?: () => void;
   authUser?: { name: string; email: string; role?: string } | null;
   onLogout?: () => void;
+  onFooterToggle?: () => void;
 }
 
 /* Maps each numeric glyph to the segments used by the seven-segment UTC display. */
@@ -208,6 +209,7 @@ export default function TopBar({
   onSignInClick,
   authUser,
   onLogout,
+  onFooterToggle,
 }: TopBarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -245,7 +247,12 @@ export default function TopBar({
     >
       {/* Anchors the brand mark and title on the left side of the top navigation bar. */}
       <div className="flex items-center gap-3">
-        <div className="relative flex items-center justify-center w-8 h-8">
+        <button
+          type="button"
+          onClick={onFooterToggle}
+          className="relative flex items-center justify-center w-8 h-8 cursor-pointer"
+          title="Toggle footer"
+        >
           <svg
             width="24"
             height="24"
@@ -283,13 +290,20 @@ export default function TopBar({
               transform="rotate(-30 16 16)"
             />
           </svg>
-        </div>
-        <span
-          className="text-sm font-bold tracking-[0.2em] text-glow-accent hidden sm:block"
-          style={{ fontFamily: "var(--font-orbitron)" }}
+        </button>
+        <button
+          type="button"
+          onClick={onFooterToggle}
+          className="hidden sm:block cursor-pointer"
+          title="Toggle footer"
         >
-          SMS
-        </span>
+          <span
+            className="text-sm font-bold tracking-[0.2em] text-glow-accent"
+            style={{ fontFamily: "var(--font-orbitron)" }}
+          >
+            SMS
+          </span>
+        </button>
         <div
           className="h-6 w-px ml-1"
           style={{ background: "var(--border-subtle)" }}

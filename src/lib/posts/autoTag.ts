@@ -373,6 +373,8 @@ export function autoTagText(title: string, body: string): string[] {
 
     tag = tag.trim();
     if (!tag || tag.length < 2) return;
+    if (/^\d{1,2}:\d{2}(?::\d{2})?\s*(utc|gmt)?$/i.test(tag)) return;
+    if (/^\d{1,2}\s*(am|pm)\s*(utc|gmt)?$/i.test(tag)) return;
 
     const key = tag.toLowerCase();
     if (!seen.has(key) && tags.length < 6) {

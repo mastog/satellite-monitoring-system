@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import TopBar from "@/components/layout/TopBar";
@@ -31,6 +31,7 @@ export default function ClientShell({
 }: {
   children: React.ReactNode;
 }) {
+  const [footerExpanded, setFooterExpanded] = useState(false);
   const {
     setUserLocation,
     showAuthModal,
@@ -340,6 +341,7 @@ export default function ClientShell({
                 : null
             }
             onLogout={logout}
+            onFooterToggle={() => setFooterExpanded((prev) => !prev)}
           />
 
           {/* Sign in banner */}
@@ -378,7 +380,10 @@ export default function ClientShell({
 
           {/* Renders the shared footer in the second grid row below the main view. */}
           <div>
-            <Footer />
+            <Footer
+              expanded={footerExpanded}
+              onToggle={() => setFooterExpanded((prev) => !prev)}
+            />
           </div>
         </div>
       </div>

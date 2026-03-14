@@ -12,6 +12,7 @@ import { computeMedals, SDG_VOTE_KEYS } from "@/lib/stats/medalComputation";
 import { POINTS_ACHIEVEMENT } from "@/lib/points/economy";
 import MedalIcon, { MEDAL_COLORS } from "@/components/ui/MedalIcon";
 import SvgIcon from "@/components/ui/SvgIcon";
+import Tooltip from "@/components/ui/Tooltip";
 // Loads the character viewer only on the client because the viewer depends on
 // browser-only rendering APIs.
 
@@ -333,15 +334,32 @@ export default function ProfileView() {
                   },
                 ].map((stat) => (
                   <div key={stat.label}>
-                    <div
-                      className="text-lg font-bold"
-                      style={{
-                        fontFamily: "var(--font-orbitron)",
-                        color: stat.color,
-                      }}
-                    >
-                      {stat.value}
-                    </div>
+                    {stat.label === "Points" ? (
+                      <Tooltip
+                        content="Points come from posts, comments, votes, quiz answers, and first-time medal unlocks."
+                      >
+                        <div
+                          className="text-lg font-bold"
+                          style={{
+                            fontFamily: "var(--font-orbitron)",
+                            color: stat.color,
+                            cursor: "help",
+                          }}
+                        >
+                          {stat.value}
+                        </div>
+                      </Tooltip>
+                    ) : (
+                      <div
+                        className="text-lg font-bold"
+                        style={{
+                          fontFamily: "var(--font-orbitron)",
+                          color: stat.color,
+                        }}
+                      >
+                        {stat.value}
+                      </div>
+                    )}
                     <div
                       className="text-[14px] tracking-wider uppercase"
                       style={{ color: "var(--text-dim)" }}
@@ -363,15 +381,18 @@ export default function ProfileView() {
                   >
                     Progress to LV{level.level + 1}
                   </span>
-                  <span
-                    className="text-[12px] font-bold"
-                    style={{
-                      color: levelColor,
-                      fontFamily: "var(--font-fira-code)",
-                    }}
-                  >
-                    {levelProgress} / {levelProgressMax} pts
-                  </span>
+                  <Tooltip content="Level progress tracks total experience earned from contributions and medal unlocks.">
+                    <span
+                      className="text-[12px] font-bold"
+                      style={{
+                        color: levelColor,
+                        fontFamily: "var(--font-fira-code)",
+                        cursor: "help",
+                      }}
+                    >
+                      {levelProgress} / {levelProgressMax} pts
+                    </span>
+                  </Tooltip>
                 </div>
                 <div
                   className="h-1.5 rounded-full overflow-hidden"

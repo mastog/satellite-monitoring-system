@@ -536,6 +536,72 @@ export default function SDGDashboard() {
             )}
           </GlassPanel>
 
+          {/* Renders a compact help strip above the SDG card grid. */}
+          {analysis && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.14 }}
+              className="relative overflow-hidden rounded-2xl px-4 py-2.5"
+              style={{
+                background:
+                  "linear-gradient(125deg, rgba(0,229,255,0.08) 0%, rgba(8,12,20,0.78) 48%, rgba(180,74,255,0.08) 100%)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                boxShadow:
+                  "inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 24px rgba(0,0,0,0.16)",
+              }}
+            >
+              <div
+                className="absolute inset-y-0 left-0 w-24"
+                style={{
+                  background:
+                    "linear-gradient(90deg, rgba(0,229,255,0.12), transparent)",
+                }}
+              />
+              <div className="relative flex items-center gap-2.5">
+                <div
+                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
+                  style={{
+                    background: "rgba(0,0,0,0.28)",
+                    border: "1px solid rgba(0,229,255,0.2)",
+                    boxShadow: "0 0 16px rgba(0,229,255,0.08)",
+                  }}
+                >
+                  <span
+                    className="text-[14px] font-bold"
+                    style={{
+                      fontFamily: "var(--font-orbitron)",
+                      color: "var(--accent)",
+                    }}
+                  >
+                    ?
+                  </span>
+                </div>
+                <div className="min-w-0 flex items-center gap-2.5">
+                  <div
+                    className="text-[11px] font-bold uppercase tracking-[0.18em]"
+                    style={{
+                      color: "var(--accent)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Quick Hint
+                  </div>
+                  <p
+                    className="text-[12px] tracking-wide"
+                    style={{
+                      color: "var(--text-secondary)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    The question-mark button on each SDG card opens its quiz so
+                    you can review the goal and earn points from the same panel.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Lists individual SDG summary cards so the user can choose which goal to inspect in detail. */}
           {analysis && (
             <div className="grid grid-cols-3 gap-4">
@@ -558,11 +624,16 @@ export default function SDGDashboard() {
                         ? sdg.color
                         : "rgba(0, 229, 255, 0.1)",
                     }}
-                    transition={{ duration: 0.4, delay: 0.15 + i * 0.06 }}
+                    transition={{
+                      duration: 0.32,
+                      delay: 0.15 + i * 0.06,
+                      hover: { duration: 0.14, delay: 0 },
+                    }}
                     whileHover={{
                       scale: 1.02,
                       borderColor: isSelected ? sdg.color : `${sdg.color}40`,
                     }}
+                    whileTap={{ scale: 0.995 }}
                     onClick={() => {
                       setSelectedSDG(isSelected ? null : sdg);
                       setExpandedIndicator(null);
@@ -600,23 +671,22 @@ export default function SDGDashboard() {
                               }
                               setQuizSDG(sdg.sdgNumber);
                             }}
-                            className="p-1.5 rounded-md transition-all"
+                            className="flex h-7 w-7 items-center justify-center rounded-full transition-all"
                             style={{
-                              background: "rgba(0,0,0,0.3)",
-                              border: "1px solid var(--border-subtle)",
+                              background: "rgba(0,0,0,0.22)",
                               color: "var(--text-dim)",
                             }}
                             whileHover={{
                               scale: 1.1,
-                              borderColor: `${sdg.color}60`,
                               color: sdg.color,
+                              background: `${sdg.color}14`,
                             }}
                             whileTap={{ scale: 0.95 }}
                             title={`Take SDG ${sdg.sdgNumber} Quiz`}
                           >
                             <svg
-                              width="14"
-                              height="14"
+                              width="20"
+                              height="20"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"

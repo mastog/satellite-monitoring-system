@@ -3,7 +3,11 @@ import { getAuthUser } from "@/lib/auth/middleware";
 import { toggleVote } from "@/lib/posts/db";
 import { prisma } from "@/lib/prisma";
 import type { PostVote } from "@/lib/posts/types";
-import { awardPoints, deductPoints, POINTS_VOTE } from "@/lib/points/economy";
+import {
+  awardPoints,
+  penalizePointsAndExperience,
+  POINTS_VOTE,
+} from "@/lib/points/economy";
 
 const CONTENT_TYPES = new Set(["sdg", "article", "paper", "indicator"]);
 
@@ -69,8 +73,8 @@ export async function POST(req: NextRequest) {
         console.error("award points error:", e)
       );
     } else if (result.action === "removed") {
-      deductPoints(user.id, POINTS_VOTE, "vote-removed").catch((e) =>
-        console.error("deduct points error:", e)
+      penalizePointsAndExperience(user.id, POINTS_VOTE, "vote-removed").catch(
+        (e) => console.error("penalty points error:", e)
       );
     }
     return NextResponse.json(result);

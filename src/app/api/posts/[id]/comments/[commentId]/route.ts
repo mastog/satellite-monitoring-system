@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCommentById, updateComment, deleteComment } from "@/lib/posts/db";
 import { getAuthUser } from "@/lib/auth/middleware";
+import {
+  penalizePointsAndExperience,
+  POINTS_COMMENT,
+} from "@/lib/points/economy";
 
 export async function PUT(
   req: NextRequest,
@@ -63,6 +67,11 @@ export async function DELETE(
     }
 
     await deleteComment(commentId);
+    await penalizePointsAndExperience(
+      user.id,
+      POINTS_COMMENT,
+      "comment-deleted"
+    );
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Comment [id] API error:", err);
