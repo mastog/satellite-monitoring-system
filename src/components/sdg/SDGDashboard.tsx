@@ -627,7 +627,6 @@ export default function SDGDashboard() {
                     transition={{
                       duration: 0.32,
                       delay: 0.15 + i * 0.06,
-                      hover: { duration: 0.14, delay: 0 },
                     }}
                     whileHover={{
                       scale: 1.02,
