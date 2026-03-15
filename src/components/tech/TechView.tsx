@@ -324,38 +324,139 @@ export default function TechView() {
             }}
           />
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-center mb-8"
-          >
-            <div
-              className="text-[12px] font-bold tracking-[0.4em] uppercase mb-2"
-              style={{
-                color: "var(--text-dim)",
-                fontFamily: "var(--font-orbitron)",
-              }}
+          <div className="flex items-center gap-10 mb-8">
+            {/* Displays the hero emblem for the technology overview. */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.6, rotate: -30 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+              className="flex-shrink-0"
             >
-              SATELLITE MONITORING SYSTEM
-            </div>
-            <h1
-              className="text-2xl font-bold tracking-[0.2em] text-glow-cyan mb-1"
-              style={{ fontFamily: "var(--font-orbitron)" }}
+              <div
+                className="w-28 h-28 rounded-full flex items-center justify-center relative"
+                style={{
+                  background:
+                    "radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%)",
+                  border: "1px solid rgba(0,229,255,0.14)",
+                }}
+              >
+                <motion.svg
+                  width="64"
+                  height="64"
+                  viewBox="0 0 64 64"
+                  fill="none"
+                  animate={{ rotate: 360 }}
+                  transition={{
+                    duration: 80,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                >
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="22"
+                    stroke="var(--neon-cyan)"
+                    strokeWidth="0.6"
+                    opacity="0.22"
+                  />
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="12"
+                    stroke="var(--neon-orange)"
+                    strokeWidth="1"
+                    opacity="0.5"
+                  />
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="3.5"
+                    fill="var(--neon-cyan)"
+                    opacity="0.8"
+                  />
+                  <path
+                    d="M10 32H54"
+                    stroke="var(--neon-cyan)"
+                    strokeWidth="0.5"
+                    opacity="0.2"
+                  />
+                  <path
+                    d="M32 10V54"
+                    stroke="var(--neon-orange)"
+                    strokeWidth="0.5"
+                    opacity="0.2"
+                  />
+                  <ellipse
+                    cx="32"
+                    cy="32"
+                    rx="28"
+                    ry="9"
+                    stroke="var(--holo-purple)"
+                    strokeWidth="0.5"
+                    opacity="0.2"
+                    transform="rotate(-25 32 32)"
+                  />
+                  <ellipse
+                    cx="32"
+                    cy="32"
+                    rx="28"
+                    ry="9"
+                    stroke="var(--neon-orange)"
+                    strokeWidth="0.45"
+                    opacity="0.18"
+                    transform="rotate(28 32 32)"
+                  />
+                </motion.svg>
+                <div className="absolute inset-2 rounded-full border border-white/5" />
+              </div>
+            </motion.div>
+
+            {/* Displays the title stack and introductory copy for the technology overview. */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              className="flex-1"
             >
-              TECH STACK
-            </h1>
-            <h2
-              className="text-base tracking-[0.08em]"
-              style={{
-                color: "var(--neon-orange)",
-                fontFamily: "var(--font-orbitron)",
-                fontWeight: 600,
-              }}
-            >
-              Architecture &amp; Engineering
-            </h2>
-          </motion.div>
+              <div
+                className="text-[12px] font-bold tracking-[0.38em] uppercase mb-2"
+                style={{
+                  color: "var(--text-dim)",
+                  fontFamily: "var(--font-orbitron)",
+                }}
+              >
+                SATELLITE MONITORING SYSTEM
+              </div>
+              <h1
+                className="text-[32px] md:text-[38px] font-bold tracking-[0.15em] leading-none text-glow-cyan mb-3"
+                style={{ fontFamily: "var(--font-orbitron)" }}
+              >
+                TECH STACK
+              </h1>
+              <h2
+                className="text-[13px] tracking-[0.22em] uppercase mb-4"
+                style={{
+                  color: "var(--neon-orange)",
+                  fontFamily: "var(--font-orbitron)",
+                  fontWeight: 600,
+                }}
+              >
+                Architecture &amp; Engineering
+              </h2>
+              <p
+                className="max-w-2xl text-[14px] leading-relaxed"
+                style={{
+                  color: "var(--text-secondary)",
+                  fontFamily: "var(--font-exo2)",
+                }}
+              >
+                A technical atlas of the platform architecture, rendering
+                engine, state flow, and data systems that connect orbital
+                tracking, analytics, and interactive storytelling.
+              </p>
+            </motion.div>
+          </div>
 
           {/* Draws the animated technology network used as the hero centerpiece. */}
           <motion.div
@@ -1768,7 +1869,7 @@ const { position, velocity } =
           </div>
         </section>
 
-        {/* Closes the page with a compact footer that echoes the engineering theme. */}
+        {/* Displays the closing footer for the technology overview. */}
         <Reveal>
           <div
             className="text-center py-3 px-4 rounded-lg"

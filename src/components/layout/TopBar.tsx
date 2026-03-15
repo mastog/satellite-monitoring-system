@@ -213,6 +213,8 @@ export default function TopBar({
 }: TopBarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const isProfilePage =
+    pathname === "/profile" || pathname.startsWith("/profile/");
   const navigateToProfile = () => router.push("/profile");
   const [time, setTime] = useState<Date | null>(null);
   const [showAppearance, setShowAppearance] = useState(false);
@@ -411,6 +413,7 @@ export default function TopBar({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="topbar-profile-rig"
+              data-page-active={isProfilePage ? "true" : "false"}
             >
               <span className="topbar-session-trace" aria-hidden="true">
                 <svg viewBox="0 0 194 48" preserveAspectRatio="none">
@@ -421,8 +424,13 @@ export default function TopBar({
                 </svg>
               </span>
               <button
-                onClick={navigateToProfile}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={(event) => {
+                  event.currentTarget.blur();
+                  navigateToProfile();
+                }}
                 className="topbar-profile-main"
+                data-page-active={isProfilePage ? "true" : "false"}
                 title="My Profile"
               >
                 <span className="topbar-profile-main__crest">
@@ -438,7 +446,11 @@ export default function TopBar({
                 </span>
               </button>
               <button
-                onClick={onLogout}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={(event) => {
+                  event.currentTarget.blur();
+                  onLogout?.();
+                }}
                 className="topbar-profile-out"
                 title="Sign out"
               >

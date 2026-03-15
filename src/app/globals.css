@@ -735,6 +735,10 @@ body::after {
   border-color: rgba(255, 255, 255, 0.04);
 }
 
+.topbar-profile-rig[data-page-active="true"]::before {
+  border-color: color-mix(in srgb, var(--accent) 14%, rgba(255, 255, 255, 0.04));
+}
+
 /* Draws the animated edge trace used by the session controls. */
 .topbar-session-trace {
   position: absolute;
@@ -762,9 +766,15 @@ body::after {
 
 .topbar-profile-rig:hover .topbar-session-trace path,
 .topbar-profile-rig:focus-within .topbar-session-trace path,
+.topbar-profile-rig[data-page-active="true"] .topbar-session-trace path,
 .topbar-signin-chip:hover .topbar-session-trace path,
 .topbar-signin-chip:focus-visible .topbar-session-trace path {
   stroke-dasharray: 100 0;
+}
+
+.topbar-profile-rig[data-page-active="true"] .topbar-session-trace path {
+  stroke: color-mix(in srgb, var(--accent) 76%, rgba(255, 255, 255, 0.28));
+  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--accent) 26%, transparent));
 }
 
 .topbar-profile-main {
