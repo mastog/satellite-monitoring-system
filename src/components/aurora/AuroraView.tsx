@@ -56,6 +56,12 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return t * t * (3 - 2 * t);
 }
 
+// Converts a monotonically increasing phase into a mirrored 0-1 shoreline cycle.
+function triangleWave(phase: number) {
+  const wrapped = ((phase % 2) + 2) % 2;
+  return wrapped < 1 ? wrapped : 2 - wrapped;
+}
+
 // Stores one RGB color channel tuple used by the wave field renderer.
 interface RGB {
   r: number;
@@ -133,6 +139,17 @@ function SilkCanvas() {
       hue: number;
     }[]
   >([]);
+  const ambientRef = useRef<
+    {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      hue: number;
+      size: number;
+      phase: number;
+    }[]
+  >([]);
 
   useEffect(() => {
     if (!isInView) return;
@@ -145,6 +162,18 @@ function SilkCanvas() {
       H = 480;
     canvas.width = W;
     canvas.height = H;
+
+    if (ambientRef.current.length === 0) {
+      ambientRef.current = Array.from({ length: 24 }, () => ({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.18,
+        vy: -0.08 - Math.random() * 0.14,
+        hue: 170 + Math.random() * 50,
+        size: 1.2 + Math.random() * 2.1,
+        phase: Math.random() * Math.PI * 2,
+      }));
+    }
 
     // Draws one ribbon in multiple passes so the stroke has a glow, core, and highlight.
     const drawRibbon = (pts: RibbonPt[], alpha: number) => {
@@ -202,6 +231,7 @@ function SilkCanvas() {
       const mouse = mouseRef.current;
       const ribbons = ribbonsRef.current;
       const sparks = sparkRef.current;
+      const ambient = ambientRef.current;
 
       // Samples a new point while the user is dragging so the active ribbon follows pointer motion.
       if (mouse.down && activeRef.current) {
@@ -283,6 +313,39 @@ function SilkCanvas() {
           1,
           1
         );
+      }
+
+      // Renders ambient ionized motes that drift through the chamber while the canvas is idle.
+      for (const mote of ambient) {
+        mote.x += mote.vx + Math.sin(frame * 0.008 + mote.phase) * 0.08;
+        mote.y += mote.vy + Math.cos(frame * 0.006 + mote.phase) * 0.04;
+        if (mote.y + mote.size < 0) {
+          mote.y = H + mote.size;
+          mote.x = Math.random() * W;
+        }
+        if (mote.x + mote.size < 0) mote.x = W + mote.size;
+        if (mote.x - mote.size > W) mote.x = -mote.size;
+
+        const pulse = 0.04 + 0.03 * Math.sin(frame * 0.022 + mote.phase);
+        const glow = ctx.createRadialGradient(
+          mote.x,
+          mote.y,
+          0,
+          mote.x,
+          mote.y,
+          mote.size * 3.2
+        );
+        glow.addColorStop(0, `hsla(${mote.hue},82%,74%,${pulse})`);
+        glow.addColorStop(1, "transparent");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(mote.x, mote.y, mote.size * 3.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = `hsla(${mote.hue},88%,82%,${pulse * 1.1})`;
+        ctx.beginPath();
+        ctx.arc(mote.x, mote.y, mote.size * 0.48, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       // Draws all completed ribbons with age-based fading.
@@ -462,10 +525,11 @@ function GravityCanvas() {
     }));
 
     let t = 0;
+    const timeScale = 0.68;
 
     const loop = () => {
       const bodies = bodiesRef.current;
-      const dt = 0.6;
+      const dt = 0.6 * timeScale;
 
       // Advances the body simulation by applying the current gravitational interaction step.
       for (let i = 0; i < bodies.length; i++) {
@@ -656,7 +720,7 @@ function GravityCanvas() {
         }
       }
 
-      t += 0.016;
+      t += 0.016 * timeScale;
       rafRef.current = requestAnimationFrame(loop);
     };
 
@@ -1489,6 +1553,7 @@ function TidalFieldCanvas() {
   const accentColor = useAppStore((s) => s.userPreferences.accentColor);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const isInView = useInView(containerRef, { margin: "120px" });
   const rafRef = useRef(0);
   const particlesRef = useRef<TideParticle[]>([]);
@@ -1553,6 +1618,33 @@ function TidalFieldCanvas() {
     const observer = new ResizeObserver(resize);
     observer.observe(container);
 
+    if (!audioRef.current) {
+      const audio = new Audio("/audio/live-with-me.mp3");
+      audio.loop = true;
+      audio.preload = "auto";
+      audio.volume = 0;
+      audioRef.current = audio;
+    }
+
+    const visibilityThresholds = Array.from({ length: 21 }, (_, index) => index / 20);
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        const ratio = entry?.intersectionRatio ?? 0;
+        const targetVolume = clamp(ratio * 0.4, 0, 0.4);
+        audio.volume = targetVolume;
+
+        if (ratio > 0.02) {
+          void audio.play().catch(() => {});
+        } else {
+          audio.pause();
+        }
+      },
+      { threshold: visibilityThresholds }
+    );
+    visibilityObserver.observe(container);
+
     const loop = () => {
       ctx.clearRect(0, 0, width, height);
 
@@ -1562,20 +1654,28 @@ function TidalFieldCanvas() {
 
         const nx = particle.ox / width;
         const ny = particle.oy / height;
-        const cycle = (Math.sin(time * 0.36 - 0.9) + 1) * 0.5;
-        const wash = smoothstep(0.08, 0.96, cycle);
-        const retreat = smoothstep(0.38, 0.96, (Math.sin(time * 0.36 + Math.PI * 0.45) + 1) * 0.5);
-        const shorelineBase = lerp(height * 0.94, height * 0.3, wash);
+        const tideCycle = triangleWave(time * 0.118 + 0.94);
+        const retreatCycle = triangleWave(time * 0.118 + 0.38);
+        const wash = smoothstep(0.02, 0.98, tideCycle);
+        const retreat = smoothstep(0.26, 0.98, retreatCycle);
+        const nextWash = smoothstep(
+          0.02,
+          0.98,
+          triangleWave((time + 0.045) * 0.118 + 0.94)
+        );
+        const shorelineBase = lerp(height * 0.94, height * 0.16, wash);
         const shoreline =
           shorelineBase +
-          Math.sin(nx * 10.5 + time * 0.82) * 12 +
-          Math.cos(nx * 4.8 - time * 0.44) * 18 +
-          (fbm(nx * 2.6 + time * 0.05, time * 0.04 + ny * 0.8, 3) - 0.5) * 26;
+          Math.sin(nx * 11.4 + time * 1.04) * 18 +
+          Math.cos(nx * 5.2 - time * 0.62) * 24 +
+          Math.sin(nx * 24.5 - time * 1.28 + particle.phase * 0.3) * 5.5 +
+          (fbm(nx * 3.2 + time * 0.08, time * 0.06 + ny * 0.92, 4) - 0.5) * 38;
         const nextShoreline =
-          lerp(height * 0.94, height * 0.3, smoothstep(0.08, 0.96, (Math.sin((time + 0.045) * 0.36 - 0.9) + 1) * 0.5)) +
-          Math.sin(nx * 10.5 + (time + 0.045) * 0.82) * 12 +
-          Math.cos(nx * 4.8 - (time + 0.045) * 0.44) * 18 +
-          (fbm(nx * 2.6 + (time + 0.045) * 0.05, (time + 0.045) * 0.04 + ny * 0.8, 3) - 0.5) * 26;
+          lerp(height * 0.94, height * 0.16, nextWash) +
+          Math.sin(nx * 11.4 + (time + 0.045) * 1.04) * 18 +
+          Math.cos(nx * 5.2 - (time + 0.045) * 0.62) * 24 +
+          Math.sin(nx * 24.5 - (time + 0.045) * 1.28 + particle.phase * 0.3) * 5.5 +
+          (fbm(nx * 3.2 + (time + 0.045) * 0.08, (time + 0.045) * 0.06 + ny * 0.92, 4) - 0.5) * 38;
         const shorelineVelocity = nextShoreline - shoreline;
         const distanceToFront = particle.oy - shoreline;
         const foamBand = 1 - smoothstep(10, 48, Math.abs(distanceToFront));
@@ -1589,8 +1689,8 @@ function TidalFieldCanvas() {
           (1 - smoothstep(-42, -108, distanceToFront)) *
           retreat;
         const lateralSweep =
-          Math.sin(nx * 16 + time * 0.86 + particle.phase) * (0.45 + washBody * 1.3) +
-          (fbm(nx * 4.6 + time * 0.06, ny * 4.1 - time * 0.03, 3) - 0.5) * (1.2 + washBody * 2.1);
+          Math.sin(nx * 18.5 + time * 1.06 + particle.phase) * (0.52 + washBody * 1.45) +
+          (fbm(nx * 5.2 + time * 0.08, ny * 4.8 - time * 0.04, 3) - 0.5) * (1.35 + washBody * 2.35);
         const forwardPush = washBody * (1.2 + foamBand * 1.7) * Math.max(0, -shorelineVelocity + 0.8);
         const backPull = sandMist * (0.8 + retreat * 2.6) * Math.max(0, shorelineVelocity + 0.35);
         const yDrift =
@@ -1653,6 +1753,8 @@ function TidalFieldCanvas() {
     return () => {
       cancelAnimationFrame(rafRef.current);
       observer.disconnect();
+      visibilityObserver.disconnect();
+      audioRef.current?.pause();
     };
   }, [accentColor, isInView]);
 
@@ -1660,7 +1762,7 @@ function TidalFieldCanvas() {
     <div
       ref={containerRef}
       className="relative w-full overflow-hidden"
-      style={{ height: "clamp(19rem, 36vw, 31rem)", background: "transparent" }}
+      style={{ height: "clamp(24rem, 42vw, 38rem)", background: "transparent" }}
     >
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
     </div>
@@ -2064,7 +2166,7 @@ export default function AuroraView() {
       </div>
 
       {/* Renders the full-width shoreline study beneath the framed gallery pieces. */}
-      <div className="relative mt-10 -mx-6 overflow-hidden">
+      <div className="relative -mx-6 overflow-hidden">
         <TidalFieldCanvas />
       </div>
     </div>
