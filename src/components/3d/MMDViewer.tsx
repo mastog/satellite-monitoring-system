@@ -15,11 +15,20 @@ import { MODELS } from "@/lib/mmd/modelData";
 import type { DanceItem } from "@/lib/mmd/modelData";
 import SvgIcon from "@/components/ui/SvgIcon";
 import { usePointsStore } from "@/store/pointsStore";
+import { useAppStore } from "@/store/appStore";
 import { motion } from "framer-motion";
 
 const MODEL_Y = -0.9;
 const STAGE_Y = -0.9;
 const MAX_DELTA = 0.05;
+
+const ACCENT_HEX: Record<string, string> = {
+  cyan: "#00e5ff",
+  orange: "#ff6b2c",
+  purple: "#b44aff",
+  green: "#39ff7f",
+  rose: "#ff3a8c",
+};
 
 // Loads the PMX model, manages the baked-animation lifecycle, and switches
 // between idle and dance playback states.
@@ -398,7 +407,7 @@ function Stage({ visible, color }: { visible: boolean; color: string }) {
   );
 }
 
-function LoadingIndicator() {
+function LoadingIndicator({ color }: { color: string }) {
   const ref = useRef<THREE.Mesh>(null);
   useFrame((_, delta) => {
     if (ref.current) ref.current.rotation.y += delta * 2;
@@ -406,7 +415,7 @@ function LoadingIndicator() {
   return (
     <mesh ref={ref}>
       <torusGeometry args={[0.3, 0.05, 16, 32]} />
-      <meshBasicMaterial color="#00e5ff" transparent opacity={0.6} />
+      <meshBasicMaterial color={color} transparent opacity={0.6} />
     </mesh>
   );
 }
@@ -439,6 +448,10 @@ export default function MMDViewer({
   } | null>(null);
   const [internalBakeVersion, setInternalBakeVersion] = useState(0);
   const bakeVersion = externalBakeVersion ?? internalBakeVersion;
+  // Mirrors the selected shell accent so the loading overlay and 3D spinner
+  // can reuse the same highlight color.
+  const accentColor = useAppStore((s) => s.userPreferences.accentColor);
+  const accentHex = ACCENT_HEX[accentColor] ?? ACCENT_HEX.cyan;
 
   const { purchases, purchaseItem, points, dances, fetchDances } =
     usePointsStore();
@@ -655,8 +668,9 @@ export default function MMDViewer({
               <motion.div
                 className="w-10 h-10 rounded-full"
                 style={{
-                  border: "2px solid rgba(0,229,255,0.15)",
-                  borderTopColor: "var(--neon-cyan)",
+                  border:
+                    "2px solid color-mix(in srgb, var(--accent) 15%, transparent)",
+                  borderTopColor: "var(--accent)",
                 }}
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -669,7 +683,7 @@ export default function MMDViewer({
               gl={{ alpha: true, antialias: true }}
               shadows
             >
-              <Suspense fallback={<LoadingIndicator />}>
+              <Suspense fallback={<LoadingIndicator color={accentHex} />}>
                 <ambientLight intensity={0.1} />
                 <hemisphereLight args={["#c8b8a0", "#2a2a3a", 0.15]} />
                 <directionalLight
@@ -740,7 +754,7 @@ export default function MMDViewer({
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             style={{
               background:
-                "radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,0.05) 0%, rgba(6,8,13,0.78) 34%, rgba(6,8,13,0.9) 100%)",
+                "radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--accent) 10%, rgba(255,255,255,0.04)) 0%, rgba(6,8,13,0.78) 34%, rgba(6,8,13,0.9) 100%)",
               backdropFilter: "blur(14px)",
             }}
           >
@@ -749,8 +763,9 @@ export default function MMDViewer({
                 <motion.div
                   className="absolute inset-0 rounded-full"
                   style={{
-                    border: "1px solid rgba(255,153,102,0.24)",
-                    boxShadow: "0 0 30px rgba(255,153,102,0.14)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--accent) 24%, transparent)",
+                    boxShadow: "0 0 30px var(--accent-glow)",
                   }}
                   animate={{ rotate: 360 }}
                   transition={{
@@ -772,8 +787,8 @@ export default function MMDViewer({
                 <motion.div
                   className="h-4 w-4 rounded-full"
                   style={{
-                    background: "var(--neon-orange)",
-                    boxShadow: "0 0 20px rgba(255,153,102,0.35)",
+                    background: "var(--accent)",
+                    boxShadow: "0 0 20px var(--accent-glow)",
                   }}
                   animate={{
                     scale: [0.92, 1.1, 0.92],
@@ -787,8 +802,9 @@ export default function MMDViewer({
                 <div
                   className="text-[12px] font-bold tracking-[0.22em] uppercase"
                   style={{
-                    color: "var(--neon-orange)",
+                    color: "var(--accent)",
                     fontFamily: "var(--font-orbitron)",
+                    textShadow: "0 0 18px var(--accent-glow)",
                   }}
                 >
                   {loadingTitle}
@@ -803,11 +819,14 @@ export default function MMDViewer({
                   <>
                     <div
                       className="mt-3 h-1.5 w-40 overflow-hidden rounded-full"
-                      style={{ background: "rgba(255,153,102,0.12)" }}
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent) 12%, transparent)",
+                      }}
                     >
                       <motion.div
                         className="h-full rounded-full"
-                        style={{ background: "var(--neon-orange)" }}
+                        style={{ background: "var(--accent)" }}
                         initial={{ width: 0 }}
                         animate={{
                           width: `${(bakeProgress.current / bakeProgress.total) * 100}%`,

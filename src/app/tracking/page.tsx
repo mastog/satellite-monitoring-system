@@ -57,7 +57,7 @@ export default function TrackingPage() {
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             style={{
               background:
-                "radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,0.05) 0%, rgba(6,8,13,0.78) 34%, rgba(6,8,13,0.9) 100%)",
+                "radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--accent) 10%, rgba(255,255,255,0.04)) 0%, rgba(6,8,13,0.78) 34%, rgba(6,8,13,0.9) 100%)",
               backdropFilter: "blur(14px)",
             }}
           >
@@ -66,8 +66,9 @@ export default function TrackingPage() {
                 <motion.div
                   className="absolute inset-0 rounded-full"
                   style={{
-                    border: "1px solid rgba(0,229,255,0.24)",
-                    boxShadow: "0 0 30px rgba(0,229,255,0.14)",
+                    border:
+                      "1px solid color-mix(in srgb, var(--accent) 24%, transparent)",
+                    boxShadow: "0 0 30px var(--accent-glow)",
                   }}
                   animate={{ rotate: 360 }}
                   transition={{
@@ -103,8 +104,9 @@ export default function TrackingPage() {
                 <div
                   className="text-[13px] font-bold tracking-[0.28em] uppercase"
                   style={{
-                    color: "var(--text-primary)",
+                    color: "var(--accent)",
                     fontFamily: "var(--font-orbitron)",
+                    textShadow: "0 0 18px var(--accent-glow)",
                   }}
                 >
                   Tracking Matrix
