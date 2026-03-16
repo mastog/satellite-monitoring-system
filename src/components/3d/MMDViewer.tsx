@@ -52,6 +52,10 @@ function PMXModel({
   const restMorphRef = useRef<number[]>([]);
   const bakedRef = useRef<BakedAnimation | null>(null);
   const vmdClipCacheRef = useRef<Map<string, THREE.AnimationClip>>(new Map());
+  // Counts visible frames before the viewer reports that the model is ready.
+  const visibleFrameCountRef = useRef(0);
+  // Prevents the ready callback from firing more than once per load cycle.
+  const displayReadyRef = useRef(false);
   const [ready, setReady] = useState(false);
 
   const dancingRef = useRef(dancing);
@@ -93,6 +97,8 @@ function PMXModel({
   useEffect(() => {
     let cancelled = false;
     setReady(false);
+    visibleFrameCountRef.current = 0;
+    displayReadyRef.current = false;
     onLoading?.();
 
     // Loads the character mesh and the initial dance clip together so the
@@ -170,7 +176,6 @@ function PMXModel({
           if (cancelled) return;
           mesh.visible = true;
           setReady(true);
-          onReady?.();
         });
       },
       undefined,
@@ -204,6 +209,8 @@ function PMXModel({
     const mesh = meshRef.current;
     if (!mesh) return;
     let cancelled = false;
+    visibleFrameCountRef.current = 0;
+    displayReadyRef.current = false;
     if (helperRef.current) {
       helperRef.current.remove(mesh);
       helperRef.current = null;
@@ -240,6 +247,8 @@ function PMXModel({
     if (!mesh) return;
     if (vmdPath === vmdLoadedRef.current) return;
     let cancelled = false;
+    visibleFrameCountRef.current = 0;
+    displayReadyRef.current = false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const loader = new MMDLoader() as any;
     const cachedClip = vmdClipCacheRef.current.get(vmdPath);
@@ -297,6 +306,16 @@ function PMXModel({
   useFrame((_, rawDelta) => {
     if (!ready || !meshRef.current) return;
     const delta = Math.min(rawDelta, MAX_DELTA);
+
+    // Marks the viewport as ready only after the mesh has been visible across
+    // multiple rendered frames.
+    if (!displayReadyRef.current && meshRef.current.visible) {
+      visibleFrameCountRef.current += 1;
+      if (visibleFrameCountRef.current >= 4) {
+        displayReadyRef.current = true;
+        onReady?.();
+      }
+    }
 
     if (dancingRef.current && helperRef.current) {
       helperRef.current.update(delta);
@@ -598,7 +617,6 @@ export default function MMDViewer({
           className="absolute inset-0 rounded-[inherit]"
           animate={{
             filter: showViewportLoading ? "blur(10px)" : "blur(0px)",
-            scale: showViewportLoading ? 1.01 : 1,
           }}
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         >
