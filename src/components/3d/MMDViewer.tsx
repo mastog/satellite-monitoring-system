@@ -407,6 +407,7 @@ export default function MMDViewer({
     toLabel: string;
   } | null>(null);
   const [sceneReady, setSceneReady] = useState(false);
+  const [viewportReady, setViewportReady] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
 
   // Tracks whether baked animation data is still being prepared and how far that preprocessing has progressed.
@@ -439,6 +440,17 @@ export default function MMDViewer({
     },
     []
   );
+
+  // Holds the blur overlay until the viewport has visibly settled with the loaded model.
+  useEffect(() => {
+    if (!currentModelOwned || dances.length === 0 || !bakeReady || !sceneReady) {
+      setViewportReady(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setViewportReady(true), 180);
+    return () => window.clearTimeout(timer);
+  }, [bakeReady, currentModelOwned, dances.length, sceneReady]);
 
   // Pre-bakes every available character-and-dance combination after the dance list loads so later switching feels immediate.
   useEffect(() => {
@@ -494,7 +506,7 @@ export default function MMDViewer({
   const canPlay = currentModelOwned && currentDanceOwned;
   // Tracks whether the square 3D viewport should stay in its loading state.
   const showViewportLoading =
-    currentModelOwned && (dances.length === 0 || !bakeReady || !sceneReady);
+    currentModelOwned && (dances.length === 0 || !bakeReady || !viewportReady);
   // Labels the viewport overlay according to the active loading stage.
   const loadingTitle = !bakeReady ? "Baking Physics" : "Loading Viewer";
   const loadingSubtitle = !bakeReady
@@ -818,7 +830,10 @@ export default function MMDViewer({
               return (
                 <motion.button
                   key={m.id}
-                  onClick={() => setSelectedModel(m)}
+                  onClick={() => {
+                    setSceneReady(false);
+                    setSelectedModel(m);
+                  }}
                   className="w-full py-1.5 px-2 rounded-lg text-[13px] font-bold tracking-wider transition-all text-left flex items-center gap-2"
                   style={{
                     background: active
