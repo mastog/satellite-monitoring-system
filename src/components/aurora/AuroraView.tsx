@@ -1654,16 +1654,16 @@ function TidalFieldCanvas() {
 
         const nx = particle.ox / width;
         const ny = particle.oy / height;
-        const tideCycle = triangleWave(time * 0.118 + 0.94);
-        const retreatCycle = triangleWave(time * 0.118 + 0.38);
+        const tideCycle = triangleWave(time * 0.145 + 0.94);
+        const retreatCycle = triangleWave(time * 0.145 + 0.38);
         const wash = smoothstep(0.02, 0.98, tideCycle);
         const retreat = smoothstep(0.26, 0.98, retreatCycle);
         const nextWash = smoothstep(
           0.02,
           0.98,
-          triangleWave((time + 0.045) * 0.118 + 0.94)
+          triangleWave((time + 0.045) * 0.145 + 0.94)
         );
-        const shorelineBase = lerp(height * 0.94, height * 0.16, wash);
+        const shorelineBase = lerp(height * 0.82, height * 0.16, wash);
         const shoreline =
           shorelineBase +
           Math.sin(nx * 11.4 + time * 1.04) * 18 +
@@ -1671,7 +1671,7 @@ function TidalFieldCanvas() {
           Math.sin(nx * 24.5 - time * 1.28 + particle.phase * 0.3) * 5.5 +
           (fbm(nx * 3.2 + time * 0.08, time * 0.06 + ny * 0.92, 4) - 0.5) * 38;
         const nextShoreline =
-          lerp(height * 0.94, height * 0.16, nextWash) +
+          lerp(height * 0.82, height * 0.16, nextWash) +
           Math.sin(nx * 11.4 + (time + 0.045) * 1.04) * 18 +
           Math.cos(nx * 5.2 - (time + 0.045) * 0.62) * 24 +
           Math.sin(nx * 24.5 - (time + 0.045) * 1.28 + particle.phase * 0.3) * 5.5 +

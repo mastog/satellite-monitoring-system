@@ -492,6 +492,18 @@ export default function MMDViewer({
     ? isDanceOwned(selectedDance.id)
     : true;
   const canPlay = currentModelOwned && currentDanceOwned;
+  // Tracks whether the square 3D viewport should stay in its loading state.
+  const showViewportLoading =
+    currentModelOwned && (dances.length === 0 || !bakeReady || !sceneReady);
+  // Labels the viewport overlay according to the active loading stage.
+  const loadingTitle = !bakeReady ? "Baking Physics" : "Loading Viewer";
+  const loadingSubtitle = !bakeReady
+    ? bakeProgress
+      ? `${bakeProgress.characterName} — ${bakeProgress.animLabel}`
+      : "Preparing motion cache"
+    : dances.length === 0
+      ? "Loading dance library"
+      : "Loading model assets and stage";
 
   const startDanceTransition = useCallback(
     (targetDance: DanceItem) => {
@@ -568,171 +580,221 @@ export default function MMDViewer({
           minWidth: 0,
         }}
       >
-        {/* Covers the viewport while background animation baking is still in progress. */}
-        {!bakeReady && bakeProgress && (
-          <div
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center"
+        {/* Applies the blur transition only to the left 3D viewport content. */}
+        <motion.div
+          className="absolute inset-0 rounded-[inherit]"
+          animate={{
+            filter: showViewportLoading ? "blur(10px)" : "blur(0px)",
+            scale: showViewportLoading ? 1.01 : 1,
+          }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {!currentModelOwned ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div
+                  className="mb-3 flex w-full items-center justify-center"
+                  style={{ color: "var(--text-dim)" }}
+                >
+                  <SvgIcon name="lock" size={36} />
+                </div>
+                <div
+                  className="text-[15px] font-bold tracking-wider"
+                  style={{ color: "var(--text-dim)" }}
+                >
+                  MODEL LOCKED
+                </div>
+                <button
+                  onClick={() => handleBuy("model", selectedModel.id)}
+                  disabled={purchasing || points < selectedModel.price}
+                  className="mt-3 px-4 py-1.5 rounded-lg text-[13px] font-bold tracking-wider transition-all"
+                  style={{
+                    background: "var(--neon-cyan-dim)",
+                    color: "var(--neon-cyan)",
+                    border: "1px solid rgba(0,229,255,0.3)",
+                    opacity: purchasing || points < selectedModel.price ? 0.5 : 1,
+                  }}
+                >
+                  {purchasing ? "BUYING..." : `BUY - ${selectedModel.price} PTS`}
+                </button>
+              </div>
+            </div>
+          ) : dances.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <motion.div
+                className="w-10 h-10 rounded-full"
+                style={{
+                  border: "2px solid rgba(0,229,255,0.15)",
+                  borderTopColor: "var(--neon-cyan)",
+                }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              />
+            </div>
+          ) : (
+            <Canvas
+              camera={{ position: [0, 0.3, 4.0], fov: 32 }}
+              style={{ background: "transparent" }}
+              gl={{ alpha: true, antialias: true }}
+              shadows
+            >
+              <Suspense fallback={<LoadingIndicator />}>
+                <ambientLight intensity={0.1} />
+                <hemisphereLight args={["#c8b8a0", "#2a2a3a", 0.15]} />
+                <directionalLight
+                  position={[2.5, 5, 3]}
+                  intensity={1.4}
+                  color="#fff5e8"
+                  castShadow
+                  shadow-mapSize-width={1024}
+                  shadow-mapSize-height={1024}
+                />
+                <directionalLight
+                  position={[-3, 2, -1]}
+                  intensity={0.06}
+                  color="#b0c0d0"
+                />
+                <directionalLight
+                  position={[-1, 3, -5]}
+                  intensity={0.9}
+                  color="#e0e8ff"
+                />
+                <pointLight
+                  position={[0.5, 0.3, 3.5]}
+                  intensity={0.4}
+                  color={selectedModel.elementColor}
+                  distance={8}
+                />
+
+                <PMXModel
+                  characterId={selectedModel.id}
+                  pmxPath={selectedModel.pmxPath}
+                  dancing={canPlay && !!activeDance}
+                  vmdPath={activeDance?.vmdPath || dances[0].vmdPath}
+                  bakeVersion={bakeVersion}
+                  onReady={() => setSceneReady(true)}
+                  onLoading={() => setSceneReady(false)}
+                />
+                <Stage visible={sceneReady} color={selectedModel.elementColor} />
+                {sceneReady && (
+                  <Sparkles
+                    count={30}
+                    scale={4}
+                    size={2}
+                    speed={0.3}
+                    color={selectedModel.elementColor}
+                    opacity={0.4}
+                  />
+                )}
+                <OrbitControls
+                  enablePan={false}
+                  minDistance={2}
+                  maxDistance={6}
+                  minPolarAngle={Math.PI / 6}
+                  maxPolarAngle={Math.PI / 2.2}
+                  target={[0, 0.15, 0]}
+                />
+              </Suspense>
+            </Canvas>
+          )}
+        </motion.div>
+
+        {/* Covers the 3D viewport while scene assets or cached animation data are still loading. */}
+        {showViewportLoading && (
+          <motion.div
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-[inherit]"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             style={{
-              background: "rgba(6,8,13,0.85)",
-              backdropFilter: "blur(8px)",
+              background:
+                "radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,0.05) 0%, rgba(6,8,13,0.78) 34%, rgba(6,8,13,0.9) 100%)",
+              backdropFilter: "blur(14px)",
             }}
           >
-            {/* Displays a rotating loader so preprocessing activity is visible. */}
-            <motion.div
-              className="w-14 h-14 rounded-full mb-4"
-              style={{
-                border: "2px solid rgba(0,229,255,0.15)",
-                borderTopColor: "var(--neon-cyan)",
-              }}
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            />
-            <div
-              className="text-[12px] font-bold tracking-[0.2em] uppercase mb-2"
-              style={{
-                color: "var(--neon-cyan)",
-                fontFamily: "var(--font-orbitron)",
-              }}
-            >
-              BAKING PHYSICS
-            </div>
-            <div
-              className="text-[13px] mb-3"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              {bakeProgress.characterName} — {bakeProgress.animLabel}
-            </div>
-            {/* Shows how much of the background baking queue has been completed. */}
-            <div
-              className="w-40 h-1.5 rounded-full overflow-hidden"
-              style={{ background: "rgba(0,229,255,0.1)" }}
-            >
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: "var(--neon-cyan)" }}
-                initial={{ width: 0 }}
-                animate={{
-                  width: `${(bakeProgress.current / bakeProgress.total) * 100}%`,
-                }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
-            <div
-              className="text-[12px] mt-1.5"
-              style={{ color: "var(--text-dim)" }}
-            >
-              {bakeProgress.current} / {bakeProgress.total}
-            </div>
-          </div>
-        )}
-
-        {!currentModelOwned ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <div
-                className="mb-3 flex w-full items-center justify-center"
-                style={{ color: "var(--text-dim)" }}
-              >
-                <SvgIcon name="lock" size={36} />
-              </div>
-              <div
-                className="text-[15px] font-bold tracking-wider"
-                style={{ color: "var(--text-dim)" }}
-              >
-                MODEL LOCKED
-              </div>
-              <button
-                onClick={() => handleBuy("model", selectedModel.id)}
-                disabled={purchasing || points < selectedModel.price}
-                className="mt-3 px-4 py-1.5 rounded-lg text-[13px] font-bold tracking-wider transition-all"
-                style={{
-                  background: "var(--neon-cyan-dim)",
-                  color: "var(--neon-cyan)",
-                  border: "1px solid rgba(0,229,255,0.3)",
-                  opacity: purchasing || points < selectedModel.price ? 0.5 : 1,
-                }}
-              >
-                {purchasing ? "BUYING..." : `BUY - ${selectedModel.price} PTS`}
-              </button>
-            </div>
-          </div>
-        ) : dances.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <motion.div
-              className="w-10 h-10 rounded-full"
-              style={{
-                border: "2px solid rgba(0,229,255,0.15)",
-                borderTopColor: "var(--neon-cyan)",
-              }}
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            />
-          </div>
-        ) : (
-          <Canvas
-            camera={{ position: [0, 0.3, 4.0], fov: 32 }}
-            style={{ background: "transparent" }}
-            gl={{ alpha: true, antialias: true }}
-            shadows
-          >
-            <Suspense fallback={<LoadingIndicator />}>
-              <ambientLight intensity={0.1} />
-              <hemisphereLight args={["#c8b8a0", "#2a2a3a", 0.15]} />
-              <directionalLight
-                position={[2.5, 5, 3]}
-                intensity={1.4}
-                color="#fff5e8"
-                castShadow
-                shadow-mapSize-width={1024}
-                shadow-mapSize-height={1024}
-              />
-              <directionalLight
-                position={[-3, 2, -1]}
-                intensity={0.06}
-                color="#b0c0d0"
-              />
-              <directionalLight
-                position={[-1, 3, -5]}
-                intensity={0.9}
-                color="#e0e8ff"
-              />
-              <pointLight
-                position={[0.5, 0.3, 3.5]}
-                intensity={0.4}
-                color={selectedModel.elementColor}
-                distance={8}
-              />
-
-              <PMXModel
-                characterId={selectedModel.id}
-                pmxPath={selectedModel.pmxPath}
-                dancing={canPlay && !!activeDance}
-                vmdPath={activeDance?.vmdPath || dances[0].vmdPath}
-                bakeVersion={bakeVersion}
-                onReady={() => setSceneReady(true)}
-                onLoading={() => setSceneReady(false)}
-              />
-              <Stage visible={sceneReady} color={selectedModel.elementColor} />
-              {sceneReady && (
-                <Sparkles
-                  count={30}
-                  scale={4}
-                  size={2}
-                  speed={0.3}
-                  color={selectedModel.elementColor}
-                  opacity={0.4}
+            <div className="relative flex flex-col items-center gap-4">
+              <div className="relative flex h-20 w-20 items-center justify-center">
+                <motion.div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    border: "1px solid rgba(255,153,102,0.24)",
+                    boxShadow: "0 0 30px rgba(255,153,102,0.14)",
+                  }}
+                  animate={{ rotate: 360 }}
+                  transition={{
+                    duration: 9,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
                 />
-              )}
-              <OrbitControls
-                enablePan={false}
-                minDistance={2}
-                maxDistance={6}
-                minPolarAngle={Math.PI / 6}
-                maxPolarAngle={Math.PI / 2.2}
-                target={[0, 0.15, 0]}
-              />
-            </Suspense>
-          </Canvas>
+                <motion.div
+                  className="absolute inset-[10px] rounded-full"
+                  style={{ border: "1px dashed rgba(255,255,255,0.16)" }}
+                  animate={{ rotate: -360 }}
+                  transition={{
+                    duration: 14,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                />
+                <motion.div
+                  className="h-4 w-4 rounded-full"
+                  style={{
+                    background: "var(--neon-orange)",
+                    boxShadow: "0 0 20px rgba(255,153,102,0.35)",
+                  }}
+                  animate={{
+                    scale: [0.92, 1.1, 0.92],
+                    opacity: [0.8, 1, 0.8],
+                  }}
+                  transition={{ duration: 1.6, repeat: Infinity }}
+                />
+              </div>
+
+              <div className="text-center">
+                <div
+                  className="text-[12px] font-bold tracking-[0.22em] uppercase"
+                  style={{
+                    color: "var(--neon-orange)",
+                    fontFamily: "var(--font-orbitron)",
+                  }}
+                >
+                  {loadingTitle}
+                </div>
+                <div
+                  className="mt-2 text-[12px]"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {loadingSubtitle}
+                </div>
+                {!bakeReady && bakeProgress && (
+                  <>
+                    <div
+                      className="mt-3 h-1.5 w-40 overflow-hidden rounded-full"
+                      style={{ background: "rgba(255,153,102,0.12)" }}
+                    >
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{ background: "var(--neon-orange)" }}
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: `${(bakeProgress.current / bakeProgress.total) * 100}%`,
+                        }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+                    <div
+                      className="mt-1.5 text-[11px]"
+                      style={{ color: "var(--text-dim)" }}
+                    >
+                      {bakeProgress.current} / {bakeProgress.total}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </motion.div>
         )}
       </div>
 
