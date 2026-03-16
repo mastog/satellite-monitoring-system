@@ -125,18 +125,14 @@ export async function preBakeAll(
   // Exits immediately when every combination is already cached.
   if (missing.length === 0) return;
 
+  // Collects only the combinations that still require a local bake pass after
+  // cache hydration is attempted.
   const unresolved: MissingEntry[] = [];
 
-  // Tries to hydrate each missing bake from server-hosted cache files before falling back to local baking.
+  // Tries to hydrate each missing bake from server-hosted cache files before
+  // falling back to local baking.
   for (let i = 0; i < missing.length; i++) {
     const entry = missing[i];
-
-    onProgress?.({
-      current: i + 1,
-      total: missing.length,
-      characterName: entry.char.name.en,
-      animLabel: entry.animLabel,
-    });
 
     const hydrated = await getOrFetchBaked(
       bakeKey(entry.char.id, entry.animId)

@@ -540,9 +540,12 @@ export default function MMDViewer({
   // Tracks whether the square 3D viewport should stay in its loading state.
   const showViewportLoading =
     currentModelOwned && (dances.length === 0 || !bakeReady || !viewportReady);
+  // Tracks whether the viewer is actively running local physics bakes instead
+  // of reusing existing cached motion data.
+  const isLocalBakeActive = !bakeReady && !!bakeProgress;
   // Labels the viewport overlay according to the active loading stage.
-  const loadingTitle = !bakeReady ? "Baking Physics" : "Loading Viewer";
-  const loadingSubtitle = !bakeReady
+  const loadingTitle = isLocalBakeActive ? "Baking Physics" : "Loading Viewer";
+  const loadingSubtitle = isLocalBakeActive
     ? bakeProgress
       ? `${bakeProgress.characterName} — ${bakeProgress.animLabel}`
       : "Preparing motion cache"
@@ -815,7 +818,7 @@ export default function MMDViewer({
                 >
                   {loadingSubtitle}
                 </div>
-                {!bakeReady && bakeProgress && (
+                {isLocalBakeActive && bakeProgress && (
                   <>
                     <div
                       className="mt-3 h-1.5 w-40 overflow-hidden rounded-full"
