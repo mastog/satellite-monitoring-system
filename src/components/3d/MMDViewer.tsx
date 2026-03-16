@@ -441,17 +441,6 @@ export default function MMDViewer({
     []
   );
 
-  // Holds the blur overlay until the viewport has visibly settled with the loaded model.
-  useEffect(() => {
-    if (!currentModelOwned || dances.length === 0 || !bakeReady || !sceneReady) {
-      setViewportReady(false);
-      return;
-    }
-
-    const timer = window.setTimeout(() => setViewportReady(true), 180);
-    return () => window.clearTimeout(timer);
-  }, [bakeReady, currentModelOwned, dances.length, sceneReady]);
-
   // Pre-bakes every available character-and-dance combination after the dance list loads so later switching feels immediate.
   useEffect(() => {
     if (dances.length === 0) return;
@@ -493,17 +482,29 @@ export default function MMDViewer({
     [purchases]
   );
 
+  const currentModelOwned = isModelOwned(selectedModel.id);
+  const currentDanceOwned = selectedDance
+    ? isDanceOwned(selectedDance.id)
+    : true;
+  const canPlay = currentModelOwned && currentDanceOwned;
+
+  // Holds the blur overlay until the viewport has visibly settled with the loaded model.
+  useEffect(() => {
+    if (!currentModelOwned || dances.length === 0 || !bakeReady || !sceneReady) {
+      setViewportReady(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setViewportReady(true), 180);
+    return () => window.clearTimeout(timer);
+  }, [bakeReady, currentModelOwned, dances.length, sceneReady]);
+
   const handleBuy = async (type: "model" | "dance", id: string) => {
     setPurchasing(true);
     await purchaseItem(type, id);
     setPurchasing(false);
   };
 
-  const currentModelOwned = isModelOwned(selectedModel.id);
-  const currentDanceOwned = selectedDance
-    ? isDanceOwned(selectedDance.id)
-    : true;
-  const canPlay = currentModelOwned && currentDanceOwned;
   // Tracks whether the square 3D viewport should stay in its loading state.
   const showViewportLoading =
     currentModelOwned && (dances.length === 0 || !bakeReady || !viewportReady);
