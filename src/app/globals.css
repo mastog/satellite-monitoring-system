@@ -669,6 +669,11 @@ body::after {
   background: transparent;
 }
 
+/* Allows the notification badge to extend beyond the square button bounds. */
+.topbar-icon-btn--badge {
+  overflow: visible;
+}
+
 .topbar-icon-btn:hover,
 .topbar-icon-btn:focus-visible {
   border-color: color-mix(in srgb, var(--accent) 18%, transparent);

@@ -103,7 +103,7 @@ export default function NotificationBell() {
       <button
         ref={buttonRef}
         onClick={toggleOpen}
-        className="topbar-hover-btn topbar-icon-btn relative flex items-center justify-center w-7 h-7 rounded-md overflow-visible"
+        className="topbar-hover-btn topbar-icon-btn topbar-icon-btn--badge relative flex items-center justify-center w-7 h-7 rounded-md"
         data-active={isOpen ? "true" : "false"}
         style={{
           background: isOpen ? "rgba(0,229,255,0.08)" : "transparent",
