@@ -436,7 +436,6 @@ export default function MMDViewer({
   } | null>(null);
   const [sceneReady, setSceneReady] = useState(false);
   const [viewportReady, setViewportReady] = useState(false);
-  const [viewportInteractive, setViewportInteractive] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
 
   // Tracks whether baked animation data is still being prepared and how far that preprocessing has progressed.
@@ -623,8 +622,6 @@ export default function MMDViewer({
       {/* Hosts the live 3D viewport where the selected model and dance are rendered. */}
       <div
         className="rounded-xl overflow-hidden relative flex-1"
-        onPointerEnter={() => setViewportInteractive(true)}
-        onPointerLeave={() => setViewportInteractive(false)}
         style={{
           background: "rgba(0,0,0,0.4)",
           border: "1px solid var(--border-subtle)",
@@ -739,7 +736,6 @@ export default function MMDViewer({
                   />
                 )}
                 <OrbitControls
-                  enabled={viewportInteractive}
                   enablePan={false}
                   minDistance={2}
                   maxDistance={6}
