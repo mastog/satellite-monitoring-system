@@ -325,12 +325,8 @@ export default function ClimateMap({
 
     svg.call(zoomBehaviorRef.current);
 
-    // Restores the saved zoom transform after the map is redrawn.
-    if (zoomTransformRef.current !== d3.zoomIdentity) {
-      mapGroup.attr("transform", zoomTransformRef.current.toString());
-      // Updates D3's internal zoom state without dispatching a new zoom event.
-      svg.property("__zoom", zoomTransformRef.current);
-    }
+    // Applies the stored zoom transform through the shared behavior after each redraw.
+    svg.call(zoomBehaviorRef.current.transform, zoomTransformRef.current);
   }, [events, onEventClick, onRenderedCount]);
 
   // Applies external hover highlighting by mutating marker attributes without rebuilding the map.
@@ -355,8 +351,6 @@ export default function ClimateMap({
   useEffect(() => {
     render();
     const ro = new ResizeObserver(() => {
-      // Resets zoom on resize because the refit projection changes marker positions.
-      zoomTransformRef.current = d3.zoomIdentity;
       render();
     });
     if (containerRef.current) ro.observe(containerRef.current);

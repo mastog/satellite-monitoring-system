@@ -201,7 +201,7 @@ function FormRoleSelect({
             animate={{ opacity: 1, y: 0, scaleY: 1 }}
             exit={{ opacity: 0, y: -4, scaleY: 0.95 }}
             transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute z-50 left-0 right-0 mt-1.5 rounded-lg overflow-hidden origin-top"
+            className="absolute z-[120] left-0 right-0 mt-1.5 rounded-lg overflow-hidden origin-top"
             style={{
               background:
                 "linear-gradient(180deg, rgba(10,14,24,0.98) 0%, rgba(6,8,13,0.98) 100%)",
@@ -423,7 +423,7 @@ function ConfirmDialog({
 }) {
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className="fixed inset-0 z-[120] flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -502,7 +502,7 @@ function ModalForm({
 }) {
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className="fixed inset-0 z-[120] flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
