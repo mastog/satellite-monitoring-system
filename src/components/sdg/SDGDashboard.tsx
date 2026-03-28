@@ -9,6 +9,7 @@ import SDGTrendChart from "@/components/charts/SDGTrendChart";
 import SDGForecastChart from "@/components/charts/SDGForecastChart";
 import SDGComparisonTable from "@/components/sdg/SDGComparisonTable";
 import SDGIcon from "@/components/sdg/SDGIcon";
+import Tooltip from "@/components/ui/Tooltip";
 import { type RegionDataset } from "@/components/charts/SDGRadarChart";
 import {
   analyzeRegionAsync,
@@ -747,42 +748,49 @@ export default function SDGDashboard() {
                         </div>
                         <div className="flex-1 space-y-1.5">
                           {sdg.indicators.slice(0, 2).map((ind) => (
-                            <div
+                            <Tooltip
                               key={ind.id}
-                              className="flex items-center gap-2"
+                              content={ind.name}
+                              position="top"
+                              fullWidth
+                              followCursor
                             >
-                              <div className="flex-1">
-                                <div
-                                  className="h-1 rounded-full overflow-hidden"
-                                  style={{
-                                    background: "rgba(255,255,255,0.05)",
-                                  }}
-                                >
-                                  <motion.div
-                                    className="h-full rounded-full"
+                              <div className="block w-full">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1">
+                                    <div
+                                      className="h-1 rounded-full overflow-hidden"
+                                      style={{
+                                        background: "rgba(255,255,255,0.05)",
+                                      }}
+                                    >
+                                      <motion.div
+                                        className="h-full rounded-full"
+                                        style={{
+                                          background: sdg.color,
+                                          opacity: 0.7,
+                                        }}
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${ind.value}%` }}
+                                        transition={{
+                                          duration: 0.8,
+                                          delay: 0.5 + i * 0.08,
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                  <span
+                                    className="text-[14px] w-8 text-right"
                                     style={{
-                                      background: sdg.color,
-                                      opacity: 0.7,
+                                      color: "var(--text-dim)",
+                                      fontFamily: "var(--font-fira-code)",
                                     }}
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${ind.value}%` }}
-                                    transition={{
-                                      duration: 0.8,
-                                      delay: 0.5 + i * 0.08,
-                                    }}
-                                  />
+                                  >
+                                    {ind.value}%
+                                  </span>
                                 </div>
                               </div>
-                              <span
-                                className="text-[14px] w-8 text-right"
-                                style={{
-                                  color: "var(--text-dim)",
-                                  fontFamily: "var(--font-fira-code)",
-                                }}
-                              >
-                                {ind.value}%
-                              </span>
-                            </div>
+                            </Tooltip>
                           ))}
                         </div>
                       </div>
