@@ -294,6 +294,18 @@ function generateWireframeSphere(
   return paths;
 }
 
+/* Precomputes orbit sample strings so the SVG marker can follow the projected ellipse smoothly. */
+const ORBIT_SAMPLE_COUNT = 72;
+const ORBIT_CX_VALUES = Array.from({ length: ORBIT_SAMPLE_COUNT + 1 }, (_, i) => {
+  const angle = (Math.PI * 2 * i) / ORBIT_SAMPLE_COUNT;
+  return (150 + Math.cos(angle) * 140).toFixed(3);
+}).join(";");
+
+const ORBIT_CY_VALUES = Array.from({ length: ORBIT_SAMPLE_COUNT + 1 }, (_, i) => {
+  const angle = (Math.PI * 2 * i) / ORBIT_SAMPLE_COUNT;
+  return (150 + Math.sin(angle) * 50).toFixed(3);
+}).join(";");
+
 /* Renders the long-form technical overview page that explains the system architecture and design choices. */
 
 export default function TechView() {
@@ -722,17 +734,9 @@ export default function TechView() {
                         from { transform: rotate(0deg); }
                         to { transform: rotate(360deg); }
                       }
-                      @keyframes sat-orbit {
-                        from { transform: rotate(0deg); }
-                        to { transform: rotate(360deg); }
-                      }
                       .sphere-group {
                         transform-origin: 150px 150px;
                         animation: sphere-rotate 40s linear infinite;
-                      }
-                      .orbit-sat-group {
-                        transform-origin: 150px 150px;
-                        animation: sat-orbit 6s linear infinite;
                       }
                     `}</style>
                   </defs>
@@ -776,36 +780,49 @@ export default function TechView() {
                     transform="rotate(-20 150 150)"
                   />
 
-                  {/* Moves a small satellite marker around the orbit path to imply live motion. */}
-                  <g
-                    className="orbit-sat-group"
-                    style={{ transformOrigin: "150px 150px" }}
-                  >
-                    <g transform="rotate(-20 150 150)">
-                      <circle cx="290" cy="150" r="4" fill="var(--neon-orange)">
-                        <animate
-                          attributeName="opacity"
-                          values="1;0.4;1"
-                          dur="2s"
-                          repeatCount="indefinite"
-                        />
-                      </circle>
-                      {/* Leaves a soft halo behind the moving satellite marker to increase motion readability. */}
-                      <circle
-                        cx="290"
-                        cy="150"
-                        r="8"
-                        fill="var(--neon-orange)"
-                        opacity="0.15"
-                      >
-                        <animate
-                          attributeName="r"
-                          values="8;12;8"
-                          dur="2s"
-                          repeatCount="indefinite"
-                        />
-                      </circle>
-                    </g>
+                  {/* Moves a small satellite marker with uniform angular motion around the projected orbit. */}
+                  <g transform="rotate(-20 150 150)">
+                    <circle cx="290" cy="150" r="4" fill="var(--neon-orange)">
+                      <animate
+                        attributeName="cx"
+                        values={ORBIT_CX_VALUES}
+                        dur="6s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="cy"
+                        values={ORBIT_CY_VALUES}
+                        dur="6s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        values="1;0.4;1"
+                        dur="2s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                    {/* Leaves a soft halo behind the moving satellite marker to increase motion readability. */}
+                    <circle cx="290" cy="150" r="8" fill="var(--neon-orange)" opacity="0.15">
+                      <animate
+                        attributeName="cx"
+                        values={ORBIT_CX_VALUES}
+                        dur="6s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="cy"
+                        values={ORBIT_CY_VALUES}
+                        dur="6s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="r"
+                        values="8;12;8"
+                        dur="2s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
                   </g>
 
                   {/* Anchors the globe illustration with a bright center point. */}

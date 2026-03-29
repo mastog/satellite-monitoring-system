@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Reveal,
@@ -153,90 +153,6 @@ const SDG_NAMES = [
   "Life on Land",
   "Peace & Justice",
   "Partnerships",
-];
-
-const CONNECTION_DATA: { satellite: string; sdgs: number[] }[] = [
-  { satellite: "Sentinel-2", sdgs: [6, 11, 15] },
-  { satellite: "Landsat 8/9", sdgs: [11, 12, 15] },
-  { satellite: "MODIS", sdgs: [13, 15] },
-  { satellite: "GRACE-FO", sdgs: [6, 13] },
-  { satellite: "CryoSat-2", sdgs: [13, 14] },
-  { satellite: "OCO-2", sdgs: [13] },
-];
-
-const CONNECTED_SDGS = [6, 11, 12, 13, 14, 15];
-
-const KEY_MISSIONS: {
-  name: string;
-  agency: string;
-  role: string;
-  color: string;
-  purpose: string;
-}[] = [
-  {
-    name: "Sentinel-2A/2B",
-    agency: "ESA",
-    role: "Multispectral",
-    color: "#26bde2",
-    purpose:
-      "13 spectral bands at 10 m resolution, imaging every field, river, and forest canopy every five days.",
-  },
-  {
-    name: "Landsat 8/9",
-    agency: "USGS/NASA",
-    role: "Heritage Observer",
-    color: "#fd6925",
-    purpose:
-      "Over 50 years of continuous observation \u2014 the longest unbroken record of Earth\u2019s surface from space.",
-  },
-  {
-    name: "MODIS",
-    agency: "NASA",
-    role: "Global Monitor",
-    color: "#f99d26",
-    purpose:
-      "Photographs the entire planet every day, capturing wildfires, algae blooms, and desert expansion in near real-time.",
-  },
-  {
-    name: "GRACE-FO",
-    agency: "NASA/GFZ",
-    role: "Gravity Mapper",
-    color: "#bf8b2e",
-    purpose:
-      "Twin satellites measuring gravity to reveal invisible groundwater vanishing beneath our feet.",
-  },
-  {
-    name: "CryoSat-2",
-    agency: "ESA",
-    role: "Ice Surveyor",
-    color: "#3f7e44",
-    purpose:
-      "Millimeter-precision measurements of polar ice sheets, tracking every crack and calving event.",
-  },
-  {
-    name: "Jason-3",
-    agency: "NASA/CNES",
-    role: "Sea Level Tracker",
-    color: "#56c02b",
-    purpose:
-      "Sub-centimeter sea-level accuracy, measuring the rising ocean from 1,336 km above.",
-  },
-  {
-    name: "OCO-2/3",
-    agency: "NASA",
-    role: "Carbon Counter",
-    color: "#b44aff",
-    purpose:
-      "Atmospheric CO\u2082 concentrations measured molecule by molecule \u2014 humanity\u2019s carbon fingerprint from orbit.",
-  },
-  {
-    name: "VIIRS",
-    agency: "NOAA",
-    role: "Nighttime Analyst",
-    color: "#00e5ff",
-    purpose:
-      "City lights from space. Where light grows, civilization thrives \u2014 or sprawls unchecked.",
-  },
 ];
 
 /* Defines the explanatory content used by the Space Sustainability Rating overview and drill-down sections. */
@@ -436,17 +352,33 @@ const SSR_RATED_MISSIONS: {
 
 export default function HistoryView() {
   const [activeModule, setActiveModule] = useState<string | null>(null);
+  const sdgSectionRef = useRef<HTMLElement | null>(null);
 
-  /* Derives SVG layout coordinates so the satellite-to-SDG connection diagram can align both columns evenly. */
-  const satCount = CONNECTION_DATA.length;
-  const sdgCount = CONNECTED_SDGS.length;
-  const svgW = 720;
-  const svgH = Math.max(satCount, sdgCount) * 56 + 40;
-  const satX = 130;
-  const sdgX = svgW - 130;
+  // Scrolls to the SDG overview section when the matching timeline milestone is selected.
+  const handleTimelineSelect = (title: string) => {
+    if (title !== "UN SDGs Adopted") return;
+    const section = sdgSectionRef.current;
+    if (!section) return;
+    section.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+  // Sorts rated missions by award tier before rendering the certified mission grid.
+  const sortedRatedMissions = [...SSR_RATED_MISSIONS].sort((a, b) => {
+    const tierOrder = {
+      Platinum: 0,
+      Gold: 1,
+      Silver: 2,
+      Bronze: 3,
+    } as const;
 
-  const satY = (i: number) => 40 + i * ((svgH - 80) / (satCount - 1));
-  const sdgY = (i: number) => 40 + i * ((svgH - 80) / (sdgCount - 1));
+    const tierDelta = tierOrder[a.tier as keyof typeof tierOrder] -
+      tierOrder[b.tier as keyof typeof tierOrder];
+
+    if (tierDelta !== 0) return tierDelta;
+    return b.year - a.year;
+  });
 
   return (
     <div className="min-h-full p-6 pb-8">
@@ -696,6 +628,7 @@ export default function HistoryView() {
                         background: "rgba(0,0,0,0.2)",
                         border: "1px solid rgba(0,229,255,0.08)",
                       }}
+                      onClick={() => handleTimelineSelect(evt.title)}
                     >
                       {/* Echoes the event color across the card header so milestones remain visually distinct. */}
                       <div
@@ -729,7 +662,7 @@ export default function HistoryView() {
         </section>
 
         {/* Explains how the Sustainable Development Goals created a shared framework for Earth-observation impact. */}
-        <section>
+        <section ref={sdgSectionRef} style={{ scrollMarginTop: "28px" }}>
           <Reveal>
             <div className="flex items-center gap-4 mb-6">
               <h2
@@ -807,246 +740,6 @@ export default function HistoryView() {
               ))}
             </div>
           </Reveal>
-        </section>
-
-        {/* Maps specific satellite missions to the SDGs they directly support through observations and data products. */}
-        <section>
-          <Reveal>
-            <div className="flex items-center gap-4 mb-6">
-              <h2
-                className="text-[12px] font-bold tracking-[0.25em] uppercase"
-                style={{
-                  color: "var(--holo-purple)",
-                  fontFamily: "var(--font-orbitron)",
-                }}
-              >
-                ORBITAL LINKS TO SUSTAINABILITY
-              </h2>
-              <div
-                className="flex-1 h-px"
-                style={{
-                  background:
-                    "linear-gradient(90deg, rgba(180,74,255,0.2), transparent)",
-                }}
-              />
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.1}>
-            <div
-              className="rounded-xl overflow-hidden p-4"
-              style={{
-                background: "rgba(0,0,0,0.2)",
-                border: "1px solid rgba(180,74,255,0.08)",
-              }}
-            >
-              <svg
-                viewBox={`0 0 ${svgW} ${svgH}`}
-                width="100%"
-                style={{ display: "block" }}
-              >
-                <defs>
-                  <style>{`
-                    @keyframes dash-flow {
-                      to { stroke-dashoffset: -20; }
-                    }
-                    .link-line {
-                      stroke-dasharray: 6 4;
-                      stroke-dashoffset: 0;
-                      animation: dash-flow 1.5s linear infinite;
-                    }
-                  `}</style>
-                </defs>
-
-                {/* Draws linking paths between each mission label and the SDG circles it contributes to. */}
-                {CONNECTION_DATA.map((conn, ci) => {
-                  const y1 = satY(ci);
-                  return conn.sdgs.map((sdg) => {
-                    const si = CONNECTED_SDGS.indexOf(sdg);
-                    if (si === -1) return null;
-                    const y2 = sdgY(si);
-                    const sdgColor = SDG_COLORS[sdg - 1];
-                    return (
-                      <path
-                        key={`${conn.satellite}-${sdg}`}
-                        d={`M${satX + 10},${y1} C${svgW / 2},${y1} ${svgW / 2},${y2} ${sdgX - 18},${y2}`}
-                        fill="none"
-                        stroke={sdgColor}
-                        strokeWidth="1.2"
-                        opacity="0.35"
-                        className="link-line"
-                      />
-                    );
-                  });
-                })}
-
-                {/* Lists satellite missions along the left side of the diagram as connection starting points. */}
-                {CONNECTION_DATA.map((conn, i) => {
-                  const y = satY(i);
-                  return (
-                    <g key={conn.satellite}>
-                      <circle
-                        cx={satX}
-                        cy={y}
-                        r="5"
-                        fill="var(--neon-cyan)"
-                        opacity="0.8"
-                      />
-                      <text
-                        x={satX - 14}
-                        y={y + 4}
-                        textAnchor="end"
-                        fill="var(--neon-cyan)"
-                        fontSize="12"
-                        fontFamily="var(--font-orbitron)"
-                        fontWeight="700"
-                      >
-                        {conn.satellite}
-                      </text>
-                    </g>
-                  );
-                })}
-
-                {/* Renders the connected SDGs as color-coded nodes on the right side of the diagram. */}
-                {CONNECTED_SDGS.map((sdg, i) => {
-                  const y = sdgY(i);
-                  const color = SDG_COLORS[sdg - 1];
-                  return (
-                    <g key={sdg}>
-                      <circle
-                        cx={sdgX}
-                        cy={y}
-                        r="16"
-                        fill={color}
-                        opacity="0.85"
-                      />
-                      <text
-                        x={sdgX}
-                        y={y + 5}
-                        textAnchor="middle"
-                        fill="#fff"
-                        fontSize="12"
-                        fontFamily="var(--font-orbitron)"
-                        fontWeight="800"
-                      >
-                        {sdg}
-                      </text>
-                      <text
-                        x={sdgX + 26}
-                        y={y + 4}
-                        textAnchor="start"
-                        fill="var(--text-dim)"
-                        fontSize="11"
-                        fontFamily="var(--font-exo2)"
-                      >
-                        {SDG_NAMES[sdg - 1]}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
-            </div>
-          </Reveal>
-        </section>
-
-        {/* Profiles major Earth-observation missions and the measurement roles they play. */}
-        <section>
-          <div className="flex items-end justify-between mb-6">
-            <Reveal>
-              <div>
-                <h2
-                  className="text-[12px] font-bold tracking-[0.25em] uppercase mb-1"
-                  style={{
-                    color: "var(--neon-cyan)",
-                    fontFamily: "var(--font-orbitron)",
-                  }}
-                >
-                  KEY MISSIONS
-                </h2>
-                <p className="text-[15px]" style={{ color: "var(--text-dim)" }}>
-                  The instruments rewriting how we understand our planet
-                </p>
-              </div>
-            </Reveal>
-            <Reveal direction="right">
-              <div
-                className="text-[11px] tracking-[0.15em] uppercase px-3 py-1 rounded-full"
-                style={{
-                  color: "var(--neon-cyan)",
-                  border: "1px solid rgba(0,229,255,0.2)",
-                  background: "rgba(0,229,255,0.05)",
-                  fontFamily: "var(--font-orbitron)",
-                }}
-              >
-                8 INSTRUMENTS
-              </div>
-            </Reveal>
-          </div>
-
-          <div className="grid grid-cols-4 gap-3">
-            {KEY_MISSIONS.map((m, i) => (
-              <Reveal key={m.name} delay={i * 0.05}>
-                <motion.div
-                  className="p-3.5 rounded-xl relative overflow-hidden"
-                  style={{
-                    background: "rgba(0,0,0,0.2)",
-                    border: `1px solid ${m.color}12`,
-                  }}
-                  whileHover={{
-                    borderColor: `${m.color}40`,
-                    y: -2,
-                    transition: { duration: 0.2 },
-                  }}
-                >
-                  {/* Adds a mission-colored accent strip that ties each card to its role category. */}
-                  <div
-                    className="absolute top-0 left-3 right-3 h-px"
-                    style={{ background: m.color, opacity: 0.25 }}
-                  />
-
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <div
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: m.color }}
-                    />
-                    <span
-                      className="text-[13px] font-bold tracking-wider truncate"
-                      style={{
-                        color: m.color,
-                        fontFamily: "var(--font-orbitron)",
-                      }}
-                    >
-                      {m.name}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span
-                      className="text-[11px] tracking-wider uppercase"
-                      style={{ color: "var(--text-dim)" }}
-                    >
-                      {m.agency}
-                    </span>
-                    <span
-                      className="text-[10px] font-bold tracking-wider px-1.5 py-px rounded"
-                      style={{
-                        background: `${m.color}0a`,
-                        color: m.color,
-                        border: `1px solid ${m.color}18`,
-                      }}
-                    >
-                      {m.role}
-                    </span>
-                  </div>
-                  <p
-                    className="text-[13px] leading-[1.65]"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    {m.purpose}
-                  </p>
-                </motion.div>
-              </Reveal>
-            ))}
-          </div>
         </section>
 
         {/* Introduces the Space Sustainability Rating framework and shows how missions are evaluated. */}
@@ -1655,7 +1348,7 @@ export default function HistoryView() {
 
               {/* Arranges rated mission summaries in a compact two-column card grid. */}
               <div className="grid grid-cols-2 gap-3">
-                {SSR_RATED_MISSIONS.map((mission, i) => (
+                {sortedRatedMissions.map((mission, i) => (
                   <Reveal
                     key={mission.operator + mission.mission}
                     delay={i * 0.04}

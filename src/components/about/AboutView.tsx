@@ -154,6 +154,57 @@ const SATELLITE_SOURCES = [
   },
 ];
 
+const SDG_COLORS = [
+  "#e5243b",
+  "#dda63a",
+  "#4c9f38",
+  "#c5192d",
+  "#ff3a21",
+  "#26bde2",
+  "#fcc30b",
+  "#a21942",
+  "#fd6925",
+  "#dd1367",
+  "#fd9d24",
+  "#bf8b2e",
+  "#3f7e44",
+  "#0a97d9",
+  "#56c02b",
+  "#00689d",
+  "#19486a",
+];
+
+const SDG_NAMES = [
+  "No Poverty",
+  "Zero Hunger",
+  "Good Health",
+  "Quality Education",
+  "Gender Equality",
+  "Clean Water",
+  "Affordable Energy",
+  "Decent Work",
+  "Industry & Innovation",
+  "Reduced Inequalities",
+  "Sustainable Cities",
+  "Responsible Production",
+  "Climate Action",
+  "Life Below Water",
+  "Life on Land",
+  "Peace & Justice",
+  "Partnerships",
+];
+
+const CONNECTION_DATA: { satellite: string; sdgs: number[] }[] = [
+  { satellite: "Sentinel-2", sdgs: [6, 11, 15] },
+  { satellite: "Landsat 8/9", sdgs: [11, 12, 15] },
+  { satellite: "MODIS", sdgs: [13, 15] },
+  { satellite: "GRACE-FO", sdgs: [6, 13] },
+  { satellite: "CryoSat-2", sdgs: [13, 14] },
+  { satellite: "OCO-2", sdgs: [13] },
+];
+
+const CONNECTED_SDGS = [6, 11, 12, 13, 14, 15];
+
 const IMPACT_STATS = [
   { value: 6, label: "SDGs Monitored", color: "var(--neon-cyan)", suffix: "" },
   {
@@ -174,6 +225,18 @@ const IMPACT_STATS = [
 // Renders the long-form project overview page that explains the mission,
 // satellite sources, analysis pipeline, and SDG coverage.
 export default function AboutView() {
+  // Computes the SVG layout used by the satellite-to-SDG connection diagram.
+  const satCount = CONNECTION_DATA.length;
+  const sdgCount = CONNECTED_SDGS.length;
+  const svgW = 720;
+  const svgH = Math.max(satCount, sdgCount) * 56 + 40;
+  const satX = 130;
+  const sdgX = svgW - 130;
+
+  // Aligns satellite and SDG nodes evenly along the connection graphic.
+  const satY = (i: number) => 40 + i * ((svgH - 80) / (satCount - 1));
+  const sdgY = (i: number) => 40 + i * ((svgH - 80) / (sdgCount - 1));
+
   return (
     <div className="min-h-full p-6 pb-8">
       <div className="max-w-6xl mx-auto space-y-20">
@@ -660,6 +723,146 @@ export default function AboutView() {
           </div>
         </section>
 
+        {/* Maps satellites directly to the SDGs they support through observation and measurement coverage. */}
+        <section>
+          <Reveal>
+            <div className="flex items-center gap-4 mb-6">
+              <h2
+                className="text-[12px] font-bold tracking-[0.25em] uppercase"
+                style={{
+                  color: "var(--holo-purple)",
+                  fontFamily: "var(--font-orbitron)",
+                }}
+              >
+                ORBITAL LINKS TO SUSTAINABILITY
+              </h2>
+              <div
+                className="flex-1 h-px"
+                style={{
+                  background:
+                    "linear-gradient(90deg, rgba(180,74,255,0.2), transparent)",
+                }}
+              />
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <div
+              className="rounded-xl overflow-hidden p-4"
+              style={{
+                background: "rgba(0,0,0,0.2)",
+                border: "1px solid rgba(180,74,255,0.08)",
+              }}
+            >
+              <svg
+                viewBox={`0 0 ${svgW} ${svgH}`}
+                width="100%"
+                style={{ display: "block" }}
+              >
+                <defs>
+                  <style>{`
+                    @keyframes dash-flow {
+                      to { stroke-dashoffset: -20; }
+                    }
+                    .link-line {
+                      stroke-dasharray: 6 4;
+                      stroke-dashoffset: 0;
+                      animation: dash-flow 1.5s linear infinite;
+                    }
+                  `}</style>
+                </defs>
+
+                {/* Draws linking paths between satellite missions and the SDGs they support. */}
+                {CONNECTION_DATA.map((conn, ci) => {
+                  const y1 = satY(ci);
+                  return conn.sdgs.map((sdg) => {
+                    const si = CONNECTED_SDGS.indexOf(sdg);
+                    if (si === -1) return null;
+                    const y2 = sdgY(si);
+                    const sdgColor = SDG_COLORS[sdg - 1];
+                    return (
+                      <path
+                        key={`${conn.satellite}-${sdg}`}
+                        d={`M${satX + 10},${y1} C${svgW / 2},${y1} ${svgW / 2},${y2} ${sdgX - 18},${y2}`}
+                        fill="none"
+                        stroke={sdgColor}
+                        strokeWidth="1.2"
+                        opacity="0.35"
+                        className="link-line"
+                      />
+                    );
+                  });
+                })}
+
+                {/* Lists the satellite missions that feed the connection map. */}
+                {CONNECTION_DATA.map((conn, i) => {
+                  const y = satY(i);
+                  return (
+                    <g key={conn.satellite}>
+                      <circle
+                        cx={satX}
+                        cy={y}
+                        r="5"
+                        fill="var(--neon-cyan)"
+                        opacity="0.8"
+                      />
+                      <text
+                        x={satX - 14}
+                        y={y + 4}
+                        textAnchor="end"
+                        fill="var(--neon-cyan)"
+                        fontSize="12"
+                        fontFamily="var(--font-orbitron)"
+                        fontWeight="700"
+                      >
+                        {conn.satellite}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Renders the connected SDGs as color-coded targets on the right side of the diagram. */}
+                {CONNECTED_SDGS.map((sdg, i) => {
+                  const y = sdgY(i);
+                  const color = SDG_COLORS[sdg - 1];
+                  return (
+                    <g key={sdg}>
+                      <circle
+                        cx={sdgX}
+                        cy={y}
+                        r="16"
+                        fill={color}
+                        opacity="0.85"
+                      />
+                      <text
+                        x={sdgX}
+                        y={y + 5}
+                        textAnchor="middle"
+                        fill="#fff"
+                        fontSize="12"
+                        fontFamily="var(--font-orbitron)"
+                        fontWeight="800"
+                      >
+                        {sdg}
+                      </text>
+                      <text
+                        x={sdgX + 26}
+                        y={y + 4}
+                        textAnchor="start"
+                        fill="var(--text-dim)"
+                        fontSize="11"
+                        fontFamily="var(--font-exo2)"
+                      >
+                        {SDG_NAMES[sdg - 1]}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+          </Reveal>
+        </section>
+
         {/* Shows how raw Earth-observation signals become understandable public insight. */}
         <section>
           <Reveal>
@@ -778,7 +981,7 @@ export default function AboutView() {
             {SATELLITE_SOURCES.map((sat, i) => (
               <Reveal key={sat.name} delay={i * 0.05}>
                 <motion.div
-                  className="p-3.5 rounded-xl relative overflow-hidden"
+                  className="h-full p-3.5 rounded-xl relative overflow-hidden flex flex-col"
                   style={{
                     background: "rgba(0,0,0,0.2)",
                     border: `1px solid ${sat.color}12`,
@@ -829,7 +1032,7 @@ export default function AboutView() {
                     </span>
                   </div>
                   <p
-                    className="text-[13px] leading-[1.65]"
+                    className="text-[13px] leading-[1.65] flex-1"
                     style={{ color: "var(--text-secondary)" }}
                   >
                     {sat.purpose}
@@ -840,7 +1043,6 @@ export default function AboutView() {
           </div>
         </section>
 
-        {/* Ends the page with a public-facing call to explore, understand, and act on the data. */}
         <section>
           <Reveal>
             <div
