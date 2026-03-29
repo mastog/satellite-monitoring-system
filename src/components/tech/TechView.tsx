@@ -1125,11 +1125,11 @@ generator client {
             </Reveal>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 auto-rows-fr">
             {FRONTEND_STACK.map((lib, i) => (
-              <Reveal key={lib.name} delay={i * 0.05}>
+              <Reveal key={lib.name} delay={i * 0.05} className="h-full">
                 <motion.div
-                  className="p-4 rounded-xl relative overflow-hidden"
+                  className="h-full p-4 rounded-xl relative overflow-hidden flex flex-col"
                   style={{
                     background: "rgba(0,0,0,0.2)",
                     border: "1px solid rgba(0,229,255,0.08)",
@@ -1169,7 +1169,7 @@ generator client {
                     </span>
                   </div>
                   <p
-                    className="text-[13px] leading-relaxed"
+                    className="text-[13px] leading-relaxed flex-1"
                     style={{ color: "var(--text-secondary)" }}
                   >
                     {lib.description}
