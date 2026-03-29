@@ -106,6 +106,14 @@ const TIMELINE: {
     color: "var(--neon-green)",
   },
   {
+    year: "2022",
+    title: "SSR Launched",
+    icon: "clipboard",
+    description:
+      "The Space Sustainability Rating formalizes a shared scoring framework for responsible orbital operations.",
+    color: "#fcc30b",
+  },
+  {
     year: "2023",
     title: "SWOT",
     icon: "water-survey",
@@ -353,11 +361,16 @@ const SSR_RATED_MISSIONS: {
 export default function HistoryView() {
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const sdgSectionRef = useRef<HTMLElement | null>(null);
+  const ssrSectionRef = useRef<HTMLElement | null>(null);
 
-  // Scrolls to the SDG overview section when the matching timeline milestone is selected.
+  // Routes timeline milestones to their corresponding long-form sections.
   const handleTimelineSelect = (title: string) => {
-    if (title !== "UN SDGs Adopted") return;
-    const section = sdgSectionRef.current;
+    const section =
+      title === "UN SDGs Adopted"
+        ? sdgSectionRef.current
+        : title === "SSR Launched"
+          ? ssrSectionRef.current
+          : null;
     if (!section) return;
     section.scrollIntoView({
       behavior: "smooth",
@@ -743,7 +756,7 @@ export default function HistoryView() {
         </section>
 
         {/* Introduces the Space Sustainability Rating framework and shows how missions are evaluated. */}
-        <section>
+        <section ref={ssrSectionRef} style={{ scrollMarginTop: "28px" }}>
           {/* Labels the rating section before the explanatory panels and module breakdowns. */}
           <Reveal>
             <div className="flex items-center gap-4 mb-3">

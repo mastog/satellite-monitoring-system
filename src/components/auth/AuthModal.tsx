@@ -9,6 +9,63 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
+type PasswordStrength = {
+  score: number;
+  label: string;
+  color: string;
+  message: string;
+};
+
+// Scores the registration password so the form can surface a live strength indicator.
+function getPasswordStrength(password: string): PasswordStrength {
+  if (!password) {
+    return {
+      score: 0,
+      label: "EMPTY",
+      color: "rgba(148,163,184,0.28)",
+      message: "Add a password to evaluate account strength.",
+    };
+  }
+
+  let score = 0;
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score += 1;
+  if (/\d/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+  if (score <= 1) {
+    return {
+      score: 1,
+      label: "WEAK",
+      color: "#ff5f6d",
+      message: "Use more characters and mix letter cases.",
+    };
+  }
+  if (score <= 3) {
+    return {
+      score: 2,
+      label: "STABLE",
+      color: "#ffb347",
+      message: "Add numbers or symbols to strengthen the password.",
+    };
+  }
+  if (score === 4) {
+    return {
+      score: 3,
+      label: "STRONG",
+      color: "#6be675",
+      message: "Strong mix detected across length and character types.",
+    };
+  }
+  return {
+    score: 4,
+    label: "FORTIFIED",
+    color: "var(--neon-cyan)",
+    message: "High-entropy password ready for registration.",
+  };
+}
+
 // Renders the modal used for both sign-in and account creation flows.
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -17,6 +74,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const { login, register, isLoading, error, clearError } = useAuthStore();
+  const passwordStrength = getPasswordStrength(password);
 
   // Submits the active auth form and closes the modal only after the store
   // reports a successful authenticated state.
@@ -270,6 +328,68 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       )}
                     </button>
                   </div>
+                  <AnimatePresence initial={false}>
+                    {mode === "register" && password.trim().length > 0 && (
+                      <motion.div
+                        key="password-strength"
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.18 }}
+                        className="mt-2.5 rounded-xl px-3 py-2.5"
+                        style={{
+                          background:
+                            "linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.018))",
+                          border: "1px solid rgba(255,255,255,0.06)",
+                        }}
+                      >
+                        {/* Visualizes the live password score without changing the surrounding form layout. */}
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <span
+                            className="text-[10px] font-bold tracking-[0.24em] uppercase"
+                            style={{
+                              color: "var(--text-dim)",
+                              fontFamily: "var(--font-orbitron)",
+                            }}
+                          >
+                            Password Strength
+                          </span>
+                          <span
+                            className="text-[10px] font-bold tracking-[0.24em] uppercase"
+                            style={{
+                              color: passwordStrength.color,
+                              fontFamily: "var(--font-orbitron)",
+                            }}
+                          >
+                            {passwordStrength.label}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5 mb-2">
+                          {[0, 1, 2, 3].map((index) => (
+                            <motion.div
+                              key={index}
+                              className="h-1.5 rounded-full"
+                              animate={{
+                                backgroundColor:
+                                  index < passwordStrength.score
+                                    ? passwordStrength.color
+                                    : "rgba(148,163,184,0.16)",
+                                opacity:
+                                  index < passwordStrength.score ? 1 : 0.6,
+                              }}
+                              transition={{ duration: 0.18 }}
+                            />
+                          ))}
+                        </div>
+                        <p
+                          className="text-[12px] leading-relaxed"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {passwordStrength.message}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Surfaces the latest auth error returned by the store. */}
