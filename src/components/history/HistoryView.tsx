@@ -656,12 +656,11 @@ export default function HistoryView() {
                           {evt.title}
                         </span>
                       </div>
-                      <p
+                      <HaloWrapText
                         className="text-[13px] leading-relaxed"
                         style={{ color: "var(--text-secondary)" }}
-                      >
-                        {evt.description}
-                      </p>
+                        text={evt.description}
+                      />
                     </div>
                   </div>
                 </Reveal>
@@ -1429,12 +1428,11 @@ export default function HistoryView() {
                       </div>
 
                       {/* Captures the sustainability practice that most clearly explains the mission's rating. */}
-                      <p
+                      <HaloWrapText
                         className="text-[12px] leading-[1.7]"
                         style={{ color: "var(--text-secondary)" }}
-                      >
-                        {mission.highlight}
-                      </p>
+                        text={mission.highlight}
+                      />
                     </div>
                   </Reveal>
                 ))}
@@ -1553,14 +1551,13 @@ export default function HistoryView() {
               border: "1px solid var(--border-subtle)",
             }}
           >
-            <p
+            <HaloWrapText
               className="text-[12px] leading-relaxed tracking-wide"
               style={{ color: "var(--text-dim)" }}
-            >
-              Historical data sourced from ESA, NASA, NOAA, and UN archives.
-              Timeline milestones reflect key inflection points in
-              satellite-enabled sustainability monitoring.
-            </p>
+              text={
+                "Historical data sourced from ESA, NASA, NOAA, and UN archives. Timeline milestones reflect key inflection points in satellite-enabled sustainability monitoring."
+              }
+            />
           </div>
         </Reveal>
         </div>

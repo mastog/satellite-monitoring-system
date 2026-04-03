@@ -647,12 +647,11 @@ export default function TechView() {
                         >
                           {layer.label}
                         </div>
-                        <p
+                        <HaloWrapText
                           className="text-[13px] leading-relaxed mt-0.5"
                           style={{ color: "var(--text-secondary)" }}
-                        >
-                          {layer.description}
-                        </p>
+                          text={layer.description}
+                        />
                       </div>
                       <div
                         className="text-[11px] font-bold tracking-[0.15em] px-2 py-0.5 rounded flex-shrink-0"
@@ -870,12 +869,11 @@ export default function TechView() {
                         >
                           {ann.label}
                         </div>
-                        <p
+                        <HaloWrapText
                           className="text-[13px] leading-relaxed mt-0.5"
                           style={{ color: "var(--text-secondary)" }}
-                        >
-                          {ann.description}
-                        </p>
+                          text={ann.description}
+                        />
                       </div>
                     </div>
                   </Reveal>
@@ -956,13 +954,13 @@ generator client {
 }`}
                     </pre>
                   </div>
-                  <p
+                  <HaloWrapText
                     className="text-[13px] leading-relaxed mt-3"
                     style={{ color: "var(--text-dim)" }}
-                  >
-                    Type-safe ORM with auto-generated client, zero-config
-                    SQLite, and schema-driven migrations.
-                  </p>
+                    text={
+                      "Type-safe ORM with auto-generated client, zero-config SQLite, and schema-driven migrations."
+                    }
+                  />
                 </div>
 
                 {/* Uses a vertical flow graphic to connect schema definitions with persisted tables. */}
@@ -1079,13 +1077,13 @@ generator client {
                       </motion.div>
                     ))}
                   </div>
-                  <p
+                  <HaloWrapText
                     className="text-[13px] leading-relaxed mt-3"
                     style={{ color: "var(--text-dim)" }}
-                  >
-                    8 tables storing users, content, votes, satellite TLEs, and
-                    cached World Bank indicators.
-                  </p>
+                    text={
+                      "8 tables storing users, content, votes, satellite TLEs, and cached World Bank indicators."
+                    }
+                  />
                 </div>
               </div>
             </div>
@@ -1169,12 +1167,11 @@ generator client {
                       {lib.category}
                     </span>
                   </div>
-                  <p
+                  <HaloWrapText
                     className="text-[13px] leading-relaxed flex-1"
                     style={{ color: "var(--text-secondary)" }}
-                  >
-                    {lib.description}
-                  </p>
+                    text={lib.description}
+                  />
                 </motion.div>
               </Reveal>
             ))}
@@ -1214,13 +1211,13 @@ generator client {
             >
               <div
                 className="grid gap-8 items-center"
-                style={{ gridTemplateColumns: "1fr 1fr" }}
+                style={{ gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)" }}
               >
                 {/* Left: orbit diagram SVG */}
                 <svg
                   viewBox="0 0 400 360"
                   width="100%"
-                  style={{ display: "block" }}
+                  style={{ display: "block", maxWidth: 360 }}
                 >
                   <defs>
                     {/* Elliptical orbit as a reusable path for animateMotion
@@ -1893,14 +1890,13 @@ const { position, velocity } =
               border: "1px solid var(--border-subtle)",
             }}
           >
-            <p
+            <HaloWrapText
               className="text-[12px] leading-relaxed tracking-wide"
               style={{ color: "var(--text-dim)" }}
-            >
-              Built with open-source technologies. All satellite propagation
-              uses the SGP4 model via satellite.js. Visualization layer powered
-              by React Three Fiber and D3.js.
-            </p>
+              text={
+                "Built with open-source technologies. All satellite propagation uses the SGP4 model via satellite.js. Visualization layer powered by React Three Fiber and D3.js."
+              }
+            />
           </div>
         </Reveal>
         </div>

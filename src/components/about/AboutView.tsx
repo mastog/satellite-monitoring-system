@@ -451,15 +451,14 @@ export default function AboutView() {
                     "For thousands of years, we understood our world by walking through it. We judged the health of a river by its color, the fertility of soil by its smell, the coming of storms by the patterns of wind."
                   }
                 />
-                <p
+                <HaloWrapText
                   className="text-[14px] mt-2 tracking-wider"
                   style={{
                     color: "var(--text-dim)",
                     fontFamily: "var(--font-fira-code)",
                   }}
-                >
-                  That ground-level knowledge shaped civilizations.
-                </p>
+                  text={"That ground-level knowledge shaped civilizations."}
+                />
               </div>
 
               {/* Contrasts the scale of the problem with the orbital perspective that answers it. */}
@@ -1013,12 +1012,11 @@ export default function AboutView() {
                       {sat.role}
                     </span>
                   </div>
-                  <p
+                  <HaloWrapText
                     className="text-[13px] leading-[1.65] flex-1"
                     style={{ color: "var(--text-secondary)" }}
-                  >
-                    {sat.purpose}
-                  </p>
+                    text={sat.purpose}
+                  />
                 </motion.div>
               </Reveal>
             ))}
@@ -1134,14 +1132,13 @@ export default function AboutView() {
               border: "1px solid var(--border-subtle)",
             }}
           >
-            <p
+            <HaloWrapText
               className="text-[12px] leading-relaxed tracking-wide"
               style={{ color: "var(--text-dim)" }}
-            >
-              SMS leverages open satellite data from ESA, NASA, NOAA, and
-              partner agencies. All SDG assessments follow UN indicator
-              frameworks with satellite-derived proxies.
-            </p>
+              text={
+                "SMS leverages open satellite data from ESA, NASA, NOAA, and partner agencies. All SDG assessments follow UN indicator frameworks with satellite-derived proxies."
+              }
+            />
           </div>
         </Reveal>
         </div>
