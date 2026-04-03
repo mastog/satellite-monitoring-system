@@ -2,6 +2,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Reveal, CornerBrackets } from "@/components/ui/ScrollReveal";
+import { HaloWrapText, StaticPageHaloStage } from "@/components/ui/StaticPageHalo";
 
 /* Collects the static datasets that drive the technology overview visualizations and reference panels. */
 
@@ -324,7 +325,8 @@ export default function TechView() {
 
   return (
     <div className="min-h-full p-6 pb-8">
-      <div className="max-w-6xl mx-auto space-y-20">
+      <StaticPageHaloStage>
+        <div className="max-w-6xl mx-auto space-y-20">
         {/* Opens the page with a constellation graphic that shows how the core technologies connect. */}
         <section className="relative pt-8 pb-4" ref={heroRef}>
           {/* Adds a faint radial glow behind the hero so the constellation stands off the page background. */}
@@ -456,17 +458,16 @@ export default function TechView() {
               >
                 Architecture &amp; Engineering
               </h2>
-              <p
+              <HaloWrapText
                 className="max-w-2xl text-[14px] leading-relaxed"
                 style={{
                   color: "var(--text-secondary)",
                   fontFamily: "var(--font-exo2)",
                 }}
-              >
-                A technical atlas of the platform architecture, rendering
-                engine, state flow, and data systems that connect orbital
-                tracking, analytics, and interactive storytelling.
-              </p>
+                text={
+                  "A technical atlas of the platform architecture, rendering engine, state flow, and data systems that connect orbital tracking, analytics, and interactive storytelling."
+                }
+              />
             </motion.div>
           </div>
 
@@ -1585,16 +1586,13 @@ generator client {
                   >
                     SGP4 PROPAGATION
                   </div>
-                  <p
+                  <HaloWrapText
                     className="text-[15px] leading-[1.9] mb-4"
                     style={{ color: "var(--text-secondary)" }}
-                  >
-                    SGP4 propagation model from satellite.js &mdash; TLE
-                    elements in, precise position/velocity out. The algorithm
-                    accounts for atmospheric drag, gravitational harmonics, and
-                    solar/lunar perturbations to predict satellite positions
-                    with sub-kilometer accuracy.
-                  </p>
+                    text={
+                      "SGP4 propagation model from satellite.js — TLE elements in, precise position/velocity out. The algorithm accounts for atmospheric drag, gravitational harmonics, and solar/lunar perturbations to predict satellite positions with sub-kilometer accuracy."
+                    }
+                  />
 
                   <div
                     className="p-3 rounded-lg"
@@ -1905,7 +1903,8 @@ const { position, velocity } =
             </p>
           </div>
         </Reveal>
-      </div>
+        </div>
+      </StaticPageHaloStage>
     </div>
   );
 }

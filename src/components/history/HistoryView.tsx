@@ -7,6 +7,7 @@ import {
   CornerBrackets,
 } from "@/components/ui/ScrollReveal";
 import SvgIcon from "@/components/ui/SvgIcon";
+import { HaloWrapText, StaticPageHaloStage } from "@/components/ui/StaticPageHalo";
 
 /* Stores the static milestone, SDG, mission, and rating datasets outside the component so renders stay cheap. */
 
@@ -395,7 +396,8 @@ export default function HistoryView() {
 
   return (
     <div className="min-h-full p-6 pb-8">
-      <div className="max-w-6xl mx-auto space-y-20">
+      <StaticPageHaloStage>
+        <div className="max-w-6xl mx-auto space-y-20">
         {/* Introduces the page with a hero block that frames the historical narrative of orbital observation. */}
         <section className="relative pt-8 pb-4">
           {/* Adds a soft radial glow behind the hero to separate it from the rest of the page. */}
@@ -545,19 +547,13 @@ export default function HistoryView() {
                   FROM SPUTNIK TO SUSTAINABILITY
                 </h2>
               </motion.div>
-              <motion.p
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.5 }}
+              <HaloWrapText
                 className="text-[15px] leading-[1.9] tracking-wide"
                 style={{ color: "var(--text-secondary)" }}
-              >
-                In barely seven decades, humanity went from launching a beeping
-                metal sphere into low orbit to maintaining a constellation of
-                instruments that watches every glacier, every forest, and every
-                coastline on the planet. This is the timeline of that
-                transformation.
-              </motion.p>
+                text={
+                  "In barely seven decades, humanity went from launching a beeping metal sphere into low orbit to maintaining a constellation of instruments that watches every glacier, every forest, and every coastline on the planet. This is the timeline of that transformation."
+                }
+              />
             </div>
           </div>
 
@@ -702,18 +698,13 @@ export default function HistoryView() {
               className="mb-8 pl-5"
               style={{ borderLeft: "2px solid rgba(255,107,44,0.25)" }}
             >
-              <p
+              <HaloWrapText
                 className="text-[15px] leading-[1.9] tracking-wide"
                 style={{ color: "var(--text-primary)" }}
-              >
-                In September 2015, all 193 United Nations member states adopted
-                the 2030 Agenda for Sustainable Development &mdash; a shared
-                blueprint built around 17 interconnected goals. These goals span
-                from eradicating poverty and hunger to protecting the climate
-                and preserving life on land and below water. Satellites became
-                indispensable for measuring progress that no ground survey could
-                capture alone.
-              </p>
+                text={
+                  "In September 2015, all 193 United Nations member states adopted the 2030 Agenda for Sustainable Development — a shared blueprint built around 17 interconnected goals. These goals span from eradicating poverty and hunger to protecting the climate and preserving life on land and below water. Satellites became indispensable for measuring progress that no ground survey could capture alone."
+                }
+              />
             </div>
           </Reveal>
 
@@ -796,9 +787,9 @@ export default function HistoryView() {
                 }}
               />
 
-              <div className="flex gap-0">
+              <div className="grid items-center gap-0 md:grid-cols-[minmax(0,1fr)_280px]">
                 {/* Holds the descriptive narrative and headline metrics for the rating system. */}
-                <div className="flex-1 p-6">
+                <div className="min-w-0 p-6">
                   <div className="flex items-center gap-3 mb-4">
                     {/* Frames the rating concept with a shield-style icon that suggests certification and protection. */}
                     <div
@@ -847,19 +838,13 @@ export default function HistoryView() {
                     </div>
                   </div>
 
-                  <p
+                  <HaloWrapText
                     className="text-[14px] leading-[1.85] tracking-wide mb-4"
                     style={{ color: "var(--text-secondary)" }}
-                  >
-                    Launched in 2022 by the World Economic Forum, ESA, and MIT
-                    Media Lab, the Space Sustainability Rating is the first
-                    composite indicator designed to incentivise satellite
-                    operators toward long-term orbital sustainability. Missions
-                    are assessed across{" "}
-                    <span style={{ color: "#fcc30b" }}>six modules</span> and
-                    awarded a tier from Bronze to Platinum — turning responsible
-                    space behaviour into a competitive advantage.
-                  </p>
+                    text={
+                      "Launched in 2022 by the World Economic Forum, ESA, and MIT Media Lab, the Space Sustainability Rating is the first composite indicator designed to incentivise satellite operators toward long-term orbital sustainability. Missions are assessed across six modules and awarded a tier from Bronze to Platinum — turning responsible space behaviour into a competitive advantage."
+                    }
+                  />
 
                   {/* Summarizes the number of modules, scoring structure, and intended operational outcomes. */}
                   <div className="flex gap-4">
@@ -904,7 +889,7 @@ export default function HistoryView() {
                 </div>
 
                 {/* Visualizes the six rating dimensions as a stylized radar chart. */}
-                <div className="flex-shrink-0 w-[280px] flex items-center justify-center p-4">
+                <div className="flex w-[280px] items-center justify-center p-4">
                   <svg viewBox="0 0 240 240" width="240" height="240">
                     <defs>
                       <style>{`
@@ -1500,28 +1485,21 @@ export default function HistoryView() {
                     THE NEXT FRONTIER
                   </h3>
 
-                  <p
+                  <HaloWrapText
                     className="text-[15px] leading-[1.85] mb-3"
                     style={{ color: "var(--text-secondary)" }}
-                  >
-                    The next generation of Earth-observation satellites will
-                    carry hyperspectral imagers, lidar altimeters, and AI-driven
-                    onboard processors &mdash; turning raw photons into
-                    actionable insights before data ever reaches the ground.
-                    Constellations will shrink revisit times from days to hours,
-                    giving us a near-continuous portrait of a changing planet.
-                  </p>
+                    text={
+                      "The next generation of Earth-observation satellites will carry hyperspectral imagers, lidar altimeters, and AI-driven onboard processors — turning raw photons into actionable insights before data ever reaches the ground. Constellations will shrink revisit times from days to hours, giving us a near-continuous portrait of a changing planet."
+                    }
+                  />
 
-                  <p
+                  <HaloWrapText
                     className="text-[14px] leading-relaxed"
                     style={{ color: "var(--text-dim)" }}
-                  >
-                    Sustainability targets that once relied on decade-old census
-                    data will be tracked in near real-time. From orbit, the
-                    goals are no longer abstract &mdash; they are measurable,
-                    visible, and undeniable. The question is no longer whether
-                    we can see the change, but whether we choose to act on it.
-                  </p>
+                    text={
+                      "Sustainability targets that once relied on decade-old census data will be tracked in near real-time. From orbit, the goals are no longer abstract — they are measurable, visible, and undeniable. The question is no longer whether we can see the change, but whether we choose to act on it."
+                    }
+                  />
                 </div>
 
                 {/* Adds a pulse-style Earth graphic to support the closing message without new data density. */}
@@ -1585,7 +1563,8 @@ export default function HistoryView() {
             </p>
           </div>
         </Reveal>
-      </div>
+        </div>
+      </StaticPageHaloStage>
     </div>
   );
 }

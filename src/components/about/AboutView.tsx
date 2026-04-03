@@ -7,6 +7,7 @@ import {
   CornerBrackets,
 } from "@/components/ui/ScrollReveal";
 import SvgIcon from "@/components/ui/SvgIcon";
+import { HaloWrapText, StaticPageHaloStage } from "@/components/ui/StaticPageHalo";
 
 const SDG_CONTRIBUTIONS = [
   {
@@ -239,7 +240,8 @@ export default function AboutView() {
 
   return (
     <div className="min-h-full p-6 pb-8">
-      <div className="max-w-6xl mx-auto space-y-20">
+      <StaticPageHaloStage>
+        <div className="max-w-6xl mx-auto space-y-20">
         {/* Introduces the platform with a mission-focused hero section and atmospheric visuals. */}
         <section className="relative pt-8 pb-4">
           {/* Adds a soft background glow behind the hero content. */}
@@ -389,20 +391,13 @@ export default function AboutView() {
                   PROTECTING TOMORROW
                 </h2>
               </motion.div>
-              <motion.p
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.5 }}
+              <HaloWrapText
                 className="text-[15px] leading-[1.9] tracking-wide"
                 style={{ color: "var(--text-secondary)" }}
-              >
-                Somewhere above you, right now, a constellation of satellites is
-                painting a portrait of our planet. They see what we cannot
-                &mdash; the slow retreat of glaciers, the silent depletion of
-                aquifers, the stubborn glow of cities that never sleep. This
-                system translates their observations into something we can
-                understand, and act upon.
-              </motion.p>
+                text={
+                  "Somewhere above you, right now, a constellation of satellites is painting a portrait of our planet. They see what we cannot — the slow retreat of glaciers, the silent depletion of aquifers, the stubborn glow of cities that never sleep. This system translates their observations into something we can understand, and act upon."
+                }
+              />
             </div>
           </div>
 
@@ -449,15 +444,13 @@ export default function AboutView() {
                 className="mb-8 pl-5"
                 style={{ borderLeft: "2px solid rgba(0,229,255,0.25)" }}
               >
-                <p
+                <HaloWrapText
                   className="text-[17px] leading-[2] tracking-wide"
                   style={{ color: "var(--text-primary)" }}
-                >
-                  For thousands of years, we understood our world by walking
-                  through it. We judged the health of a river by its color, the
-                  fertility of soil by its smell, the coming of storms by the
-                  patterns of wind.
-                </p>
+                  text={
+                    "For thousands of years, we understood our world by walking through it. We judged the health of a river by its color, the fertility of soil by its smell, the coming of storms by the patterns of wind."
+                  }
+                />
                 <p
                   className="text-[14px] mt-2 tracking-wider"
                   style={{
@@ -494,19 +487,13 @@ export default function AboutView() {
                     >
                       THE CHALLENGE
                     </div>
-                    <p
+                    <HaloWrapText
                       className="text-[15px] leading-[1.9]"
                       style={{ color: "var(--text-secondary)" }}
-                    >
-                      The challenges we face today &mdash; climate change, water
-                      scarcity, deforestation, unchecked urbanization &mdash;
-                      are too vast for human eyes alone. They unfold across
-                      continents and decades. A glacier retreating by
-                      centimeters each year. An aquifer depleting beneath
-                      millions of people who cannot feel it draining away. A
-                      forest fragmenting so slowly that no single generation
-                      notices the loss.
-                    </p>
+                      text={
+                        "The challenges we face today — climate change, water scarcity, deforestation, unchecked urbanization — are too vast for human eyes alone. They unfold across continents and decades. A glacier retreating by centimeters each year. An aquifer depleting beneath millions of people who cannot feel it draining away. A forest fragmenting so slowly that no single generation notices the loss."
+                      }
+                    />
                   </div>
                 </Reveal>
 
@@ -533,18 +520,13 @@ export default function AboutView() {
                     >
                       THE ANSWER
                     </div>
-                    <p
+                    <HaloWrapText
                       className="text-[15px] leading-[1.9]"
                       style={{ color: "var(--text-secondary)" }}
-                    >
-                      To see these changes, we needed a new vantage point. We
-                      needed to step back far enough to see the whole picture
-                      &mdash; to watch the planet as a living system, not a
-                      collection of disconnected places. That is exactly what
-                      satellites give us: a persistent, impartial eye that sees
-                      what we cannot, measures what we only guess, and remembers
-                      what we might otherwise forget.
-                    </p>
+                      text={
+                        "To see these changes, we needed a new vantage point. We needed to step back far enough to see the whole picture — to watch the planet as a living system, not a collection of disconnected places. That is exactly what satellites give us: a persistent, impartial eye that sees what we cannot, measures what we only guess, and remembers what we might otherwise forget."
+                      }
+                    />
                   </div>
                 </Reveal>
               </div>
@@ -977,9 +959,9 @@ export default function AboutView() {
             </Reveal>
           </div>
 
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-3 auto-rows-fr">
             {SATELLITE_SOURCES.map((sat, i) => (
-              <Reveal key={sat.name} delay={i * 0.05}>
+              <Reveal key={sat.name} delay={i * 0.05} className="h-full">
                 <motion.div
                   className="h-full p-3.5 rounded-xl relative overflow-hidden flex flex-col"
                   style={{
@@ -1084,25 +1066,21 @@ export default function AboutView() {
                     THE VIEW FROM ABOVE BELONGS TO ALL OF US
                   </h3>
 
-                  <p
+                  <HaloWrapText
                     className="text-[15px] leading-[1.85] mb-3"
                     style={{ color: "var(--text-secondary)" }}
-                  >
-                    Every data point in this system represents something real
-                    &mdash; a forest shrinking, a sea rising, a city growing.
-                    The satellites don&apos;t choose what to see. They show us
-                    everything. What we do with that knowledge is up to us.
-                  </p>
+                    text={
+                      "Every data point in this system represents something real — a forest shrinking, a sea rising, a city growing. The satellites don't choose what to see. They show us everything. What we do with that knowledge is up to us."
+                    }
+                  />
 
-                  <p
+                  <HaloWrapText
                     className="text-[14px] leading-relaxed"
                     style={{ color: "var(--text-dim)" }}
-                  >
-                    Track the satellites. Explore the data. Cast your vote on
-                    the issues that matter. The view from orbit is clearer than
-                    ever &mdash; the question is whether we&apos;re willing to
-                    look.
-                  </p>
+                    text={
+                      "Track the satellites. Explore the data. Cast your vote on the issues that matter. The view from orbit is clearer than ever — the question is whether we're willing to look."
+                    }
+                  />
                 </div>
 
                 {/* Adds a pulsing globe motif that supports the closing message without new data density. */}
@@ -1166,7 +1144,8 @@ export default function AboutView() {
             </p>
           </div>
         </Reveal>
-      </div>
+        </div>
+      </StaticPageHaloStage>
     </div>
   );
 }
