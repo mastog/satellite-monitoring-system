@@ -532,14 +532,40 @@ export default function AboutView() {
 
               {/* Closes the section with a concise statement about the public value of orbital observation. */}
               <Reveal delay={0.3}>
-                <div className="text-center">
-                  <p
-                    className="text-[14px] tracking-[0.06em] leading-relaxed inline-block px-6"
+                <div className="flex justify-center">
+                  <div
+                    className="relative w-full max-w-[760px] overflow-hidden rounded-full px-6 py-2"
                     style={{ color: "var(--text-dim)" }}
                   >
-                    A view from above that belongs to everyone &mdash; that is
-                    the promise of satellite observation.
-                  </p>
+                    <motion.div
+                      className="flex w-max whitespace-nowrap text-[14px] tracking-[0.06em] leading-relaxed"
+                      animate={{ x: ["0%", "-50%"] }}
+                      transition={{
+                        duration: 18,
+                        ease: "linear",
+                        repeat: Infinity,
+                      }}
+                    >
+                      {[0, 1].map((loopIndex) => (
+                        <span
+                          key={loopIndex}
+                          className="inline-flex items-center pr-4"
+                        >
+                          <span className="pr-10">
+                            A view from above that belongs to everyone — that
+                            is the promise of satellite observation.
+                          </span>
+                          <span
+                            className="mr-1 h-1 w-1 rounded-full"
+                            style={{
+                              background: "var(--accent)",
+                              boxShadow: "0 0 10px var(--accent)",
+                            }}
+                          />
+                        </span>
+                      ))}
+                    </motion.div>
+                  </div>
                 </div>
               </Reveal>
             </div>
@@ -1135,13 +1161,14 @@ export default function AboutView() {
               border: "1px solid var(--border-subtle)",
             }}
           >
-            <HaloWrapText
-              className="text-[12px] leading-relaxed tracking-wide"
+            <p
+              className="m-0 text-[12px] leading-relaxed tracking-wide"
               style={{ color: "var(--text-dim)" }}
-              text={
-                "SMS leverages open satellite data from ESA, NASA, NOAA, and partner agencies. All SDG assessments follow UN indicator frameworks with satellite-derived proxies."
-              }
-            />
+            >
+              SMS leverages open satellite data from ESA, NASA, NOAA, and
+              partner agencies. All SDG assessments follow UN indicator
+              frameworks with satellite-derived proxies.
+            </p>
           </div>
         </Reveal>
         </div>

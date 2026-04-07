@@ -1895,13 +1895,14 @@ const { position, velocity } =
               border: "1px solid var(--border-subtle)",
             }}
           >
-            <HaloWrapText
-              className="text-[12px] leading-relaxed tracking-wide"
+            <p
+              className="m-0 text-[12px] leading-relaxed tracking-wide"
               style={{ color: "var(--text-dim)" }}
-              text={
-                "Built with open-source technologies. All satellite propagation uses the SGP4 model via satellite.js. Visualization layer powered by React Three Fiber and D3.js."
-              }
-            />
+            >
+              Built with open-source technologies. All satellite propagation
+              uses the SGP4 model via satellite.js. Visualization layer powered
+              by React Three Fiber and D3.js.
+            </p>
           </div>
         </Reveal>
         </div>

@@ -1548,13 +1548,14 @@ export default function HistoryView() {
               border: "1px solid var(--border-subtle)",
             }}
           >
-            <HaloWrapText
-              className="text-[12px] leading-relaxed tracking-wide"
+            <p
+              className="m-0 text-[12px] leading-relaxed tracking-wide"
               style={{ color: "var(--text-dim)" }}
-              text={
-                "Historical data sourced from ESA, NASA, NOAA, and UN archives. Timeline milestones reflect key inflection points in satellite-enabled sustainability monitoring."
-              }
-            />
+            >
+              Historical data sourced from ESA, NASA, NOAA, and UN archives.
+              Timeline milestones reflect key inflection points in
+              satellite-enabled sustainability monitoring.
+            </p>
           </div>
         </Reveal>
         </div>
