@@ -600,7 +600,7 @@ export default function AboutView() {
         {/* Maps the platform's satellite work to the SDGs it directly supports. */}
         <section>
           <div className="flex items-end justify-between mb-6">
-            <Reveal>
+            <Reveal className="min-w-0 flex-1">
               <div>
                 <h2
                   className="text-[12px] font-bold tracking-[0.25em] uppercase mb-1"
@@ -611,9 +611,11 @@ export default function AboutView() {
                 >
                   THE MISSION
                 </h2>
-                <p className="text-[15px]" style={{ color: "var(--text-dim)" }}>
-                  Connecting what satellites see to what humanity needs
-                </p>
+                <HaloWrapText
+                  className="text-[15px]"
+                  style={{ color: "var(--text-dim)" }}
+                  text={"Connecting what satellites see to what humanity needs"}
+                />
               </div>
             </Reveal>
             <Reveal direction="right">
@@ -681,12 +683,11 @@ export default function AboutView() {
                       </span>
                     </div>
                   </div>
-                  <p
+                  <HaloWrapText
                     className="text-[13px] leading-relaxed mb-2.5"
                     style={{ color: "var(--text-secondary)" }}
-                  >
-                    {sdg.description}
-                  </p>
+                    text={sdg.description}
+                  />
                   <div
                     className="text-[11px] px-2 py-0.5 rounded inline-block"
                     style={{
@@ -856,13 +857,13 @@ export default function AboutView() {
             >
               THE DATA JOURNEY
             </h2>
-            <p
+            <HaloWrapText
               className="text-[15px] mb-6"
               style={{ color: "var(--text-dim)" }}
-            >
-              From a photon bouncing off Earth&apos;s surface to an insight on
-              your screen
-            </p>
+              text={
+                "From a photon bouncing off Earth's surface to an insight on your screen"
+              }
+            />
           </Reveal>
 
           <div className="relative">
@@ -911,12 +912,11 @@ export default function AboutView() {
                     >
                       {step.label}
                     </div>
-                    <p
+                    <HaloWrapText
                       className="text-[13px] leading-relaxed"
                       style={{ color: "var(--text-dim)" }}
-                    >
-                      {step.description}
-                    </p>
+                      text={step.description}
+                    />
                   </div>
                 </Reveal>
               ))}
@@ -927,8 +927,8 @@ export default function AboutView() {
         {/* Profiles the satellite missions and sensing roles that feed the platform. */}
         <section>
           <div className="flex items-end justify-between mb-6">
-            <Reveal>
-              <div>
+            <Reveal className="min-w-0 flex-1">
+              <div className="min-w-0">
                 <h2
                   className="text-[12px] font-bold tracking-[0.25em] uppercase mb-1"
                   style={{
@@ -938,9 +938,11 @@ export default function AboutView() {
                 >
                   OUR EYES IN SPACE
                 </h2>
-                <p className="text-[15px]" style={{ color: "var(--text-dim)" }}>
-                  Each satellite has a unique way of seeing the world
-                </p>
+                <HaloWrapText
+                  className="text-[15px]"
+                  style={{ color: "var(--text-dim)" }}
+                  text={"Each satellite has a unique way of seeing the world"}
+                />
               </div>
             </Reveal>
             <Reveal direction="right">
@@ -958,10 +960,11 @@ export default function AboutView() {
             </Reveal>
           </div>
 
-          <div className="grid grid-cols-4 gap-3 auto-rows-fr">
+          <div className="grid grid-cols-4 items-stretch gap-3">
             {SATELLITE_SOURCES.map((sat, i) => (
               <Reveal key={sat.name} delay={i * 0.05} className="h-full">
                 <motion.div
+                  layout
                   className="h-full p-3.5 rounded-xl relative overflow-hidden flex flex-col"
                   style={{
                     background: "rgba(0,0,0,0.2)",
@@ -1013,7 +1016,7 @@ export default function AboutView() {
                     </span>
                   </div>
                   <HaloWrapText
-                    className="text-[13px] leading-[1.65] flex-1"
+                    className="text-[13px] leading-[1.65]"
                     style={{ color: "var(--text-secondary)" }}
                     text={sat.purpose}
                   />

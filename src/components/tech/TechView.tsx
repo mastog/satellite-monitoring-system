@@ -637,7 +637,7 @@ export default function TechView() {
                     />
 
                     <div className="pl-4 flex items-center justify-between gap-4">
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <div
                           className="text-[13px] font-bold tracking-[0.12em]"
                           style={{
@@ -859,7 +859,7 @@ export default function TechView() {
                           boxShadow: `0 0 8px ${ann.color}`,
                         }}
                       />
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <div
                           className="text-[13px] font-bold tracking-[0.1em]"
                           style={{
@@ -917,7 +917,9 @@ export default function TechView() {
               {/* Splits schema structure, transfer flow, and stored tables into one comparative layout. */}
               <div
                 className="grid gap-8 items-start"
-                style={{ gridTemplateColumns: "1fr auto 1fr" }}
+                style={{
+                  gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+                }}
               >
                 {/* Displays a schema-style code sample that represents the Prisma model layer. */}
                 <div>
@@ -1093,8 +1095,8 @@ generator client {
         {/* Profiles the main frontend tools and the role each one plays in the product. */}
         <section>
           <div className="flex items-end justify-between mb-6">
-            <Reveal>
-              <div>
+            <Reveal className="min-w-0 flex-1">
+              <div className="min-w-0">
                 <h2
                   className="text-[12px] font-bold tracking-[0.25em] uppercase mb-1"
                   style={{
@@ -1104,9 +1106,11 @@ generator client {
                 >
                   FRONTEND STACK
                 </h2>
-                <p className="text-[15px]" style={{ color: "var(--text-dim)" }}>
-                  The libraries powering every interaction
-                </p>
+                <HaloWrapText
+                  className="text-[15px]"
+                  style={{ color: "var(--text-dim)" }}
+                  text={"The libraries powering every interaction"}
+                />
               </div>
             </Reveal>
             <Reveal direction="right">
@@ -1124,10 +1128,11 @@ generator client {
             </Reveal>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 auto-rows-fr">
+          <div className="grid grid-cols-3 items-stretch gap-3">
             {FRONTEND_STACK.map((lib, i) => (
               <Reveal key={lib.name} delay={i * 0.05} className="h-full">
                 <motion.div
+                  layout
                   className="h-full p-4 rounded-xl relative overflow-hidden flex flex-col"
                   style={{
                     background: "rgba(0,0,0,0.2)",
@@ -1168,7 +1173,7 @@ generator client {
                     </span>
                   </div>
                   <HaloWrapText
-                    className="text-[13px] leading-relaxed flex-1"
+                    className="text-[13px] leading-relaxed"
                     style={{ color: "var(--text-secondary)" }}
                     text={lib.description}
                   />
@@ -1211,13 +1216,13 @@ generator client {
             >
               <div
                 className="grid gap-8 items-center"
-                style={{ gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)" }}
+                style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}
               >
                 {/* Left: orbit diagram SVG */}
                 <svg
                   viewBox="0 0 400 360"
                   width="100%"
-                  style={{ display: "block", maxWidth: 360 }}
+                  style={{ display: "block" }}
                 >
                   <defs>
                     {/* Elliptical orbit as a reusable path for animateMotion

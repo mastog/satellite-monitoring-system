@@ -86,8 +86,30 @@ function readLineHeight(element: HTMLElement) {
   return Number.parseFloat(styles.fontSize) * 1.75;
 }
 
+function readTextAlign(element: HTMLElement): React.CSSProperties["textAlign"] {
+  const ownAlign = window.getComputedStyle(element).textAlign;
+  if (ownAlign && ownAlign !== "start") {
+    return ownAlign as React.CSSProperties["textAlign"];
+  }
+
+  const parent = element.parentElement;
+  if (!parent) return ownAlign as React.CSSProperties["textAlign"];
+  return window.getComputedStyle(parent).textAlign as React.CSSProperties["textAlign"];
+}
+
 function cursorsEqual(a: LayoutCursor, b: LayoutCursor) {
   return a.segmentIndex === b.segmentIndex && a.graphemeIndex === b.graphemeIndex;
+}
+
+function haloCursorsEqual(a: HaloCursorState, b: HaloCursorState) {
+  return (
+    a.active === b.active &&
+    a.x === b.x &&
+    a.y === b.y &&
+    a.viewportX === b.viewportX &&
+    a.viewportY === b.viewportY &&
+    a.radius === b.radius
+  );
 }
 
 function buildHoleRange(
@@ -244,6 +266,9 @@ export function StaticPageHaloStage({
     radius: HALO_RADIUS,
   });
   const [trail, setTrail] = useState<TrailPoint[]>([]);
+  const cursorFrameRef = useRef<number | null>(null);
+  const pendingCursorRef = useRef<HaloCursorState | null>(null);
+  const lastCursorRef = useRef<HaloCursorState | null>(null);
 
   useEffect(() => {
     const updateStageRect = () => {
@@ -261,32 +286,64 @@ export function StaticPageHaloStage({
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (cursorFrameRef.current === null) return;
+      cancelAnimationFrame(cursorFrameRef.current);
+    };
+  }, []);
+
   const handleMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = stageRect ?? ref.current?.getBoundingClientRect();
     if (!rect) return;
 
     const localX = event.clientX - rect.left;
     const localY = event.clientY - rect.top;
-
-    setCursor({
+    pendingCursorRef.current = {
       active: true,
       x: localX,
       y: localY,
       viewportX: event.clientX,
       viewportY: event.clientY,
       radius: HALO_RADIUS,
+    };
+
+    if (cursorFrameRef.current !== null) return;
+    cursorFrameRef.current = requestAnimationFrame(() => {
+      const nextCursor = pendingCursorRef.current;
+      pendingCursorRef.current = null;
+      cursorFrameRef.current = null;
+      if (!nextCursor) return;
+      const previousCursor = lastCursorRef.current;
+      if (previousCursor && haloCursorsEqual(previousCursor, nextCursor)) {
+        return;
+      }
+
+      lastCursorRef.current = nextCursor;
+      setCursor((current) =>
+        haloCursorsEqual(current, nextCursor) ? current : nextCursor
+      );
+      setTrail((currentTrail) => {
+        const latest = currentTrail[0];
+        if (latest?.x === nextCursor.x && latest.y === nextCursor.y) {
+          return currentTrail;
+        }
+        return [{ x: nextCursor.x, y: nextCursor.y }, ...currentTrail].slice(0, 14);
+      });
     });
-    setTrail((currentTrail) =>
-      [{ x: localX, y: localY }, ...currentTrail].slice(0, 14)
-    );
   };
 
   const handleLeave = () => {
-    setCursor((current) => ({
-      ...current,
-      active: false,
-    }));
-    setTrail([]);
+    pendingCursorRef.current = null;
+    if (cursorFrameRef.current !== null) {
+      cancelAnimationFrame(cursorFrameRef.current);
+      cursorFrameRef.current = null;
+    }
+    lastCursorRef.current = null;
+    setCursor((current) =>
+      current.active ? { ...current, active: false } : current
+    );
+    setTrail((currentTrail) => (currentTrail.length === 0 ? currentTrail : []));
   };
 
   return (
@@ -370,9 +427,13 @@ export function HaloWrapText({
 }) {
   const { cursor } = useContext(HaloContext);
   const hostRef = useRef<HTMLDivElement>(null);
+  const resetHeightTimerRef = useRef<number | null>(null);
+  const heightFrameRef = useRef<number | null>(null);
   const [width, setWidth] = useState(0);
   const [lineHeight, setLineHeight] = useState(28);
   const [font, setFont] = useState("");
+  const [textAlign, setTextAlign] = useState<React.CSSProperties["textAlign"]>();
+  const [reservedHeight, setReservedHeight] = useState<number | null>(null);
 
   const prepared = useMemo(() => {
     if (!font) return null;
@@ -384,9 +445,11 @@ export function HaloWrapText({
     if (!element) return;
 
     const updateMetrics = () => {
+      const styles = window.getComputedStyle(element);
       setWidth(element.clientWidth);
       setLineHeight(readLineHeight(element));
       setFont(formatFont(element));
+      setTextAlign(readTextAlign(element));
     };
 
     updateMetrics();
@@ -403,19 +466,32 @@ export function HaloWrapText({
     };
   }, [className, style, text]);
 
-  const liveRect = hostRef.current?.getBoundingClientRect() ?? null;
-
   const layout = useMemo(() => {
-    if (!prepared || !liveRect || width <= 0) return null;
+    const localRect = hostRef.current?.getBoundingClientRect() ?? null;
+    if (!prepared || !localRect || width <= 0) return null;
     return buildWrappedLines(
       prepared,
       width,
       lineHeight,
       cursor,
-      liveRect,
+      localRect,
       haloPadding
     );
-  }, [prepared, liveRect, width, lineHeight, cursor, haloPadding]);
+  }, [prepared, width, lineHeight, cursor, haloPadding]);
+
+  const baseLayoutHeight = useMemo(() => {
+    const localRect = hostRef.current?.getBoundingClientRect() ?? null;
+    if (!prepared || !localRect || width <= 0) return null;
+    const baseLayout = buildWrappedLines(
+      prepared,
+      width,
+      lineHeight,
+      { ...cursor, active: false },
+      localRect,
+      haloPadding
+    );
+    return baseLayout.height;
+  }, [prepared, width, lineHeight, cursor.radius, haloPadding]);
 
   const hasWrapEffect = useMemo(() => {
     if (!layout) return false;
@@ -423,15 +499,64 @@ export function HaloWrapText({
       row.pieces.some((piece) => piece.kind === "spacer" && piece.width > 0)
     );
   }, [layout]);
+  const layoutHeight = layout?.height ?? null;
+
+  useEffect(() => {
+    return () => {
+      if (resetHeightTimerRef.current !== null) {
+        window.clearTimeout(resetHeightTimerRef.current);
+      }
+      if (heightFrameRef.current !== null) {
+        cancelAnimationFrame(heightFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (resetHeightTimerRef.current !== null) {
+      window.clearTimeout(resetHeightTimerRef.current);
+      resetHeightTimerRef.current = null;
+    }
+    if (heightFrameRef.current !== null) {
+      cancelAnimationFrame(heightFrameRef.current);
+      heightFrameRef.current = null;
+    }
+
+    if (hasWrapEffect && layoutHeight !== null) {
+      heightFrameRef.current = requestAnimationFrame(() => {
+        setReservedHeight((current) =>
+          current === null || layoutHeight > current ? layoutHeight : current
+        );
+        heightFrameRef.current = null;
+      });
+      return;
+    }
+
+    resetHeightTimerRef.current = window.setTimeout(() => {
+      setReservedHeight(baseLayoutHeight);
+      resetHeightTimerRef.current = null;
+    }, 800);
+  }, [hasWrapEffect, layoutHeight, baseLayoutHeight]);
+
+  const displayHeight = reservedHeight ?? baseLayoutHeight ?? undefined;
 
   return (
-    <div
+    <motion.div
       ref={hostRef}
       className={className}
+      initial={false}
+      animate={{
+        height: displayHeight,
+        minHeight: displayHeight,
+      }}
+      transition={{ duration: 0.14, ease: "easeOut" }}
       style={{
         ...style,
+        display: "block",
+        minWidth: 0,
+        width: "100%",
         position: "relative",
-        height: hasWrapEffect ? layout?.height ?? lineHeight : undefined,
+        textAlign,
       }}
       aria-label={text}
     >
@@ -446,6 +571,12 @@ export function HaloWrapText({
               style={{
                 height: lineHeight,
                 lineHeight: `${lineHeight}px`,
+                justifyContent:
+                  textAlign === "center"
+                    ? "center"
+                    : textAlign === "right"
+                      ? "flex-end"
+                      : "flex-start",
               }}
             >
               {row.pieces.map((piece, pieceIndex) =>
@@ -469,6 +600,6 @@ export function HaloWrapText({
           <span className="sr-only">{text}</span>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

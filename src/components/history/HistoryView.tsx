@@ -1131,12 +1131,11 @@ export default function HistoryView() {
                         </div>
                       </div>
                     </div>
-                    <p
+                    <HaloWrapText
                       className="text-[12px] leading-relaxed"
                       style={{ color: "var(--text-secondary)" }}
-                    >
-                      {tier.description}
-                    </p>
+                      text={tier.description}
+                    />
                     {/* Inserts directional arrows to show the progression from baseline to exemplary performance. */}
                     {i < 3 && (
                       <div
@@ -1293,21 +1292,19 @@ export default function HistoryView() {
                                 {mod.name.toUpperCase()}
                               </h4>
                             </div>
-                            <p
+                            <HaloWrapText
                               className="text-[13px] leading-[1.8] tracking-wide mb-3"
                               style={{ color: "var(--text-primary)" }}
-                            >
-                              {mod.description}
-                            </p>
-                            <div
+                              text={mod.description}
+                            />
+                            <HaloWrapText
                               className="text-[12px] leading-[1.75] tracking-wide pl-3"
                               style={{
                                 color: "var(--text-secondary)",
                                 borderLeft: `1px solid ${mod.color}20`,
                               }}
-                            >
-                              {mod.detail}
-                            </div>
+                              text={mod.detail}
+                            />
                           </div>
                         </div>
                       </motion.div>
