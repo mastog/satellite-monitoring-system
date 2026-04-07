@@ -50,6 +50,9 @@ type FlowRow = {
 type TrailPoint = {
   x: number;
   y: number;
+  width: number;
+  opacity: number;
+  time: number;
 };
 
 const HaloContext = createContext<HaloContextValue>({
@@ -73,6 +76,10 @@ const ACCENT_HEX: Record<string, string> = {
 };
 
 const HALO_RADIUS = 96;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function formatFont(element: HTMLElement) {
   const styles = window.getComputedStyle(element);
@@ -110,6 +117,65 @@ function haloCursorsEqual(a: HaloCursorState, b: HaloCursorState) {
     a.viewportY === b.viewportY &&
     a.radius === b.radius
   );
+}
+
+function createTrailPoint(
+  x: number,
+  y: number,
+  previousPoint: TrailPoint | null,
+  time: number
+): TrailPoint {
+  const distance = previousPoint
+    ? Math.hypot(x - previousPoint.x, y - previousPoint.y)
+    : 0;
+  const elapsed = Math.max(16, time - (previousPoint?.time ?? time));
+  const speed = distance / elapsed;
+  const speedWeight = clamp(speed / 1.1, 0, 1);
+  const dwellWeight = 1 - speedWeight;
+
+  return {
+    x,
+    y,
+    width: 4.8 + dwellWeight * 18.6,
+    opacity: 0.24 + dwellWeight * 0.58,
+    time,
+  };
+}
+
+function buildTrailPath(points: TrailPoint[]) {
+  if (points.length < 2) return "";
+
+  const orderedPoints = [...points].reverse();
+  const firstPoint = orderedPoints[0];
+  let path = `M ${firstPoint.x.toFixed(2)} ${firstPoint.y.toFixed(2)}`;
+
+  for (let index = 1; index < orderedPoints.length - 1; index += 1) {
+    const currentPoint = orderedPoints[index];
+    const nextPoint = orderedPoints[index + 1];
+    const midX = (currentPoint.x + nextPoint.x) * 0.5;
+    const midY = (currentPoint.y + nextPoint.y) * 0.5;
+
+    path += ` Q ${currentPoint.x.toFixed(2)} ${currentPoint.y.toFixed(2)} ${midX.toFixed(2)} ${midY.toFixed(2)}`;
+  }
+
+  const lastPoint = orderedPoints[orderedPoints.length - 1];
+  return `${path} L ${lastPoint.x.toFixed(2)} ${lastPoint.y.toFixed(2)}`;
+}
+
+function readTrailBrush(points: TrailPoint[]) {
+  if (points.length === 0) {
+    return { width: 0, opacity: 0 };
+  }
+
+  const samplePoints = points.slice(0, 5);
+  const width =
+    samplePoints.reduce((total, point) => total + point.width, 0) /
+    samplePoints.length;
+  const opacity =
+    samplePoints.reduce((total, point) => total + point.opacity, 0) /
+    samplePoints.length;
+
+  return { width, opacity };
 }
 
 function buildHoleRange(
@@ -266,9 +332,17 @@ export function StaticPageHaloStage({
     radius: HALO_RADIUS,
   });
   const [trail, setTrail] = useState<TrailPoint[]>([]);
+  const cursorMotion = {
+    type: "spring",
+    stiffness: 280,
+    damping: 24,
+    mass: 0.45,
+  } as const;
   const cursorFrameRef = useRef<number | null>(null);
+  const trailFrameRef = useRef<number | null>(null);
   const pendingCursorRef = useRef<HaloCursorState | null>(null);
   const lastCursorRef = useRef<HaloCursorState | null>(null);
+  const latestCursorRef = useRef<HaloCursorState>(cursor);
 
   useEffect(() => {
     const updateStageRect = () => {
@@ -287,9 +361,54 @@ export function StaticPageHaloStage({
   }, []);
 
   useEffect(() => {
+    latestCursorRef.current = cursor;
+  }, [cursor]);
+
+  useEffect(() => {
+    if (!cursor.active || trailFrameRef.current !== null) return;
+
+    const sampleTrail = (time: number) => {
+      const latestCursor = latestCursorRef.current;
+      if (!latestCursor.active) {
+        trailFrameRef.current = null;
+        return;
+      }
+
+      setTrail((currentTrail) => {
+        const latestPoint = currentTrail[0] ?? null;
+        const nextPoint = createTrailPoint(
+          latestCursor.viewportX,
+          latestCursor.viewportY,
+          latestPoint,
+          time
+        );
+
+        if (
+          latestPoint &&
+          currentTrail.length === 1 &&
+          latestPoint.x === nextPoint.x &&
+          latestPoint.y === nextPoint.y
+        ) {
+          return currentTrail;
+        }
+
+        return [nextPoint, ...currentTrail].slice(0, 24);
+      });
+
+      trailFrameRef.current = requestAnimationFrame(sampleTrail);
+    };
+
+    trailFrameRef.current = requestAnimationFrame(sampleTrail);
+  }, [cursor.active]);
+
+  useEffect(() => {
     return () => {
-      if (cursorFrameRef.current === null) return;
-      cancelAnimationFrame(cursorFrameRef.current);
+      if (cursorFrameRef.current !== null) {
+        cancelAnimationFrame(cursorFrameRef.current);
+      }
+      if (trailFrameRef.current !== null) {
+        cancelAnimationFrame(trailFrameRef.current);
+      }
     };
   }, []);
 
@@ -323,13 +442,6 @@ export function StaticPageHaloStage({
       setCursor((current) =>
         haloCursorsEqual(current, nextCursor) ? current : nextCursor
       );
-      setTrail((currentTrail) => {
-        const latest = currentTrail[0];
-        if (latest?.x === nextCursor.x && latest.y === nextCursor.y) {
-          return currentTrail;
-        }
-        return [{ x: nextCursor.x, y: nextCursor.y }, ...currentTrail].slice(0, 14);
-      });
     });
   };
 
@@ -338,6 +450,10 @@ export function StaticPageHaloStage({
     if (cursorFrameRef.current !== null) {
       cancelAnimationFrame(cursorFrameRef.current);
       cursorFrameRef.current = null;
+    }
+    if (trailFrameRef.current !== null) {
+      cancelAnimationFrame(trailFrameRef.current);
+      trailFrameRef.current = null;
     }
     lastCursorRef.current = null;
     setCursor((current) =>
@@ -356,57 +472,79 @@ export function StaticPageHaloStage({
       >
         {children}
         <div className="pointer-events-none fixed inset-0 z-[70] overflow-hidden">
-          {trail.map((point, index) => {
-            const opacity = 0.22 - index * 0.013;
-            const size = 14 - index * 0.55;
-            if (opacity <= 0 || size <= 0) return null;
-            return (
-              <motion.div
-                key={`${point.x}-${point.y}-${index}`}
-                className="absolute rounded-full"
-                style={{
-                  left: cursor.viewportX - cursor.x + point.x - size * 0.5,
-                  top: cursor.viewportY - cursor.y + point.y - size * 0.5,
-                  width: size,
-                  height: size,
-                  opacity,
-                  background: resolvedAccent,
-                  boxShadow: `0 0 ${12 + index * 2}px ${resolvedAccent}`,
-                  filter: "blur(0.5px)",
-                }}
-              />
-            );
-          })}
+          <svg
+            className="absolute inset-0 h-full w-full"
+            aria-hidden="true"
+            focusable="false"
+          >
+            {(() => {
+              const trailPath = buildTrailPath(trail);
+              const brush = readTrailBrush(trail);
+              if (!trailPath) return null;
+              return (
+                <>
+                  <path
+                    d={trailPath}
+                    fill="none"
+                    stroke={resolvedAccent}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={Math.max(8, brush.width * 1.18)}
+                    opacity={cursor.active ? brush.opacity * 0.16 : 0}
+                    style={{ filter: "blur(5px)" }}
+                  />
+                  <path
+                    d={trailPath}
+                    fill="none"
+                    stroke={resolvedAccent}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={Math.max(4, brush.width * 0.66)}
+                    opacity={cursor.active ? brush.opacity * 0.72 : 0}
+                  />
+                  <path
+                    d={trailPath}
+                    fill="none"
+                    stroke={resolvedAccent}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={Math.max(1.4, brush.width * 0.2)}
+                    opacity={cursor.active ? Math.min(1, brush.opacity * 0.96) : 0}
+                  />
+                </>
+              );
+            })()}
+          </svg>
           <motion.div
-            className="absolute rounded-full"
+            className="absolute"
             animate={{
               opacity: cursor.active ? 1 : 0,
-              x: cursor.viewportX - 120,
-              y: cursor.viewportY - 120,
+              x: cursor.viewportX,
+              y: cursor.viewportY,
             }}
-            transition={{ type: "spring", stiffness: 180, damping: 20, mass: 0.5 }}
-            style={{
-              width: HALO_RADIUS * 2,
-              height: HALO_RADIUS * 2,
-              background: `radial-gradient(circle, color-mix(in srgb, ${resolvedAccent} 26%, transparent) 0%, color-mix(in srgb, ${resolvedAccent} 12%, transparent) 26%, transparent 72%)`,
-              filter: "blur(14px)",
-            }}
-          />
-          <motion.div
-            className="absolute rounded-full"
-            animate={{
-              opacity: cursor.active ? 0.9 : 0,
-              x: cursor.viewportX - 12,
-              y: cursor.viewportY - 12,
-            }}
-            transition={{ type: "spring", stiffness: 280, damping: 24, mass: 0.45 }}
-            style={{
-              width: 24,
-              height: 24,
-              background: resolvedAccent,
-              boxShadow: `0 0 22px ${resolvedAccent}`,
-            }}
-          />
+            transition={cursorMotion}
+          >
+            <div
+              className="absolute rounded-full"
+              style={{
+                width: HALO_RADIUS * 2,
+                height: HALO_RADIUS * 2,
+                transform: "translate(-50%, -50%)",
+                background: `radial-gradient(circle, color-mix(in srgb, ${resolvedAccent} 26%, transparent) 0%, color-mix(in srgb, ${resolvedAccent} 12%, transparent) 26%, transparent 72%)`,
+                filter: "blur(14px)",
+              }}
+            />
+            <div
+              className="absolute rounded-full"
+              style={{
+                width: 24,
+                height: 24,
+                transform: "translate(-50%, -50%)",
+                background: resolvedAccent,
+                boxShadow: `0 0 22px ${resolvedAccent}`,
+              }}
+            />
+          </motion.div>
         </div>
       </div>
     </HaloContext.Provider>
