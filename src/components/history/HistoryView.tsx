@@ -1260,7 +1260,7 @@ export default function HistoryView() {
                             className="absolute top-3 bottom-3 left-0 w-[2px] rounded-full"
                             style={{ background: mod.color, opacity: 0.5 }}
                           />
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 pr-12">
                             <div className="flex items-center gap-2 mb-2">
                               <div
                                 className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -1297,14 +1297,18 @@ export default function HistoryView() {
                               style={{ color: "var(--text-primary)" }}
                               text={mod.description}
                             />
-                            <HaloWrapText
-                              className="text-[12px] leading-[1.75] tracking-wide pl-3"
+                            <div
+                              className="pl-3"
                               style={{
-                                color: "var(--text-secondary)",
                                 borderLeft: `1px solid ${mod.color}20`,
                               }}
-                              text={mod.detail}
-                            />
+                            >
+                              <HaloWrapText
+                                className="text-[12px] leading-[1.75] tracking-wide"
+                                style={{ color: "var(--text-secondary)" }}
+                                text={mod.detail}
+                              />
+                            </div>
                           </div>
                         </div>
                       </motion.div>
