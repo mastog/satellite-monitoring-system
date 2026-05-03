@@ -373,7 +373,6 @@ export default function ScienceLab() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              disabled={viewMode === "stream" && tab === "papers"}
               className="px-4 py-2 rounded-lg text-[14px] font-bold tracking-[0.12em] uppercase transition-all"
               style={{
                 background:
@@ -384,7 +383,6 @@ export default function ScienceLab() {
                   activeTab === tab
                     ? "1px solid rgba(0,229,255,0.2)"
                     : "1px solid transparent",
-                opacity: viewMode === "stream" && tab === "papers" ? 0.4 : 1,
               }}
             >
               {tab}
