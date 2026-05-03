@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import GlassPanel from "@/components/ui/GlassPanel";
 import VoteButtons from "@/components/ui/VoteButtons";
 import SvgIcon from "@/components/ui/SvgIcon";
+import ScienceStreamMode from "@/components/science/ScienceStreamMode";
 import { rankArticles, rankPapers } from "@/lib/search/semanticSearch";
 import type { Article, Paper } from "@/lib/content/data";
 
@@ -77,6 +78,7 @@ export default function ScienceLab() {
   );
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeTab, setActiveTab] = useState<"articles" | "papers">("articles");
+  const [viewMode, setViewMode] = useState<"lab" | "stream">("lab");
   const [isListening, setIsListening] = useState(false);
   const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
 
@@ -97,9 +99,17 @@ export default function ScienceLab() {
     fetch("/api/science/articles")
       .then((res) => res.json())
       .then((json) => {
-        setArticles(json.articles);
-        setLastSyncTime(json.fetchedAt);
-        setDataSource(json.source);
+        if (Array.isArray(json.articles) && json.articles.length > 0) {
+          setArticles(json.articles);
+          setLastSyncTime(json.fetchedAt);
+          setDataSource(json.source);
+          return;
+        }
+
+        return import("@/lib/content/data").then((m) => {
+          setArticles(m.MOCK_ARTICLES);
+          setDataSource("mock");
+        });
       })
       .catch(() => {
         import("@/lib/content/data").then((m) => {
@@ -115,8 +125,15 @@ export default function ScienceLab() {
     fetch("/api/science/papers")
       .then((res) => res.json())
       .then((json) => {
-        setPapers(json.papers);
-        if (!lastSyncTime && json.fetchedAt) setLastSyncTime(json.fetchedAt);
+        if (Array.isArray(json.papers) && json.papers.length > 0) {
+          setPapers(json.papers);
+          if (!lastSyncTime && json.fetchedAt) setLastSyncTime(json.fetchedAt);
+          return;
+        }
+
+        return import("@/lib/content/data").then((m) => {
+          setPapers(m.MOCK_PAPERS.map((p) => ({ ...p, apiSource: "mock" })));
+        });
       })
       .catch(() => {
         import("@/lib/content/data").then((m) => {
@@ -215,30 +232,74 @@ export default function ScienceLab() {
     },
   };
 
+  const isStreamMode = viewMode === "stream";
+
   return (
-    <div className="min-h-full p-6 space-y-6 pb-8">
+    <div
+      className={
+        isStreamMode
+          ? "flex h-full min-h-0 flex-col gap-4 overflow-hidden px-6 pb-4 pt-5"
+          : "min-h-full space-y-6 p-6 pb-8"
+      }
+    >
       {/* Introduces the science workspace and summarizes the content sources available on the page. */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
+        className="flex flex-wrap items-start justify-between gap-4"
       >
-        <h2
-          className="text-lg font-bold tracking-[0.15em] text-glow-cyan"
-          style={{ fontFamily: "var(--font-orbitron)" }}
-        >
-          SCIENCE LAB
-        </h2>
-        <p
-          className="text-[15px] mt-1 tracking-wide"
-          style={{ color: "var(--text-dim)" }}
-        >
-          Earth science popularization, automated paper sync, and intelligent
-          search
-        </p>
+        <div>
+          <h2
+            className="text-lg font-bold tracking-[0.15em] text-glow-cyan"
+            style={{ fontFamily: "var(--font-orbitron)" }}
+          >
+            SCIENCE LAB
+          </h2>
+          <p
+            className="mt-1 text-[15px] tracking-wide"
+            style={{ color: "var(--text-dim)" }}
+          >
+            Earth science popularization, automated paper sync, and intelligent
+            search
+          </p>
+        </div>
+        <div className="flex gap-1">
+          {(["lab", "stream"] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => {
+                setViewMode(mode);
+                if (mode === "stream") {
+                  setActiveTab("articles");
+                }
+              }}
+              className="rounded-xl px-4 py-2 text-[13px] font-bold tracking-[0.16em] uppercase transition-all"
+              style={{
+                background:
+                  viewMode === mode
+                    ? "linear-gradient(135deg, rgba(180,74,255,0.18), rgba(0,229,255,0.12))"
+                    : "rgba(255,255,255,0.02)",
+                color:
+                  viewMode === mode ? "var(--text-primary)" : "var(--text-dim)",
+                border:
+                  viewMode === mode
+                    ? "1px solid rgba(180,74,255,0.26)"
+                    : "1px solid rgba(255,255,255,0.05)",
+                boxShadow:
+                  viewMode === mode
+                    ? "0 10px 34px rgba(0,0,0,0.2)"
+                    : "none",
+              }}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
       </motion.div>
 
       {/* Collects typed or spoken search queries used to rank both article and paper results. */}
-      <GlassPanel delay={0.1} noPadding>
+      {!isStreamMode && (
+        <GlassPanel delay={0.1} noPadding>
         <div className="flex items-center gap-3 p-3">
           <svg
             width="16"
@@ -301,15 +362,18 @@ export default function ScienceLab() {
             </motion.span>
           )}
         </div>
-      </GlassPanel>
+        </GlassPanel>
+      )}
 
       {/* Switches between article and paper results and narrows article content by category. */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-1">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {!isStreamMode && (
+          <div className="flex gap-1">
           {(["articles", "papers"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
+              disabled={viewMode === "stream" && tab === "papers"}
               className="px-4 py-2 rounded-lg text-[14px] font-bold tracking-[0.12em] uppercase transition-all"
               style={{
                 background:
@@ -320,13 +384,15 @@ export default function ScienceLab() {
                   activeTab === tab
                     ? "1px solid rgba(0,229,255,0.2)"
                     : "1px solid transparent",
+                opacity: viewMode === "stream" && tab === "papers" ? 0.4 : 1,
               }}
             >
               {tab}
             </button>
           ))}
-        </div>
-        {activeTab === "articles" && (
+          </div>
+        )}
+        {activeTab === "articles" && !isStreamMode && (
           <div className="flex gap-1">
             {CATEGORIES.map((cat) => (
               <button
@@ -357,7 +423,22 @@ export default function ScienceLab() {
 
       {/* Renders the active results view, including loading, empty, and expanded-card states. */}
       <AnimatePresence mode="wait">
-        {activeTab === "articles" ? (
+        {isStreamMode ? (
+          <motion.div
+            key="stream"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -14 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="min-h-0 flex-1 overflow-hidden"
+          >
+            <ScienceStreamMode
+              articles={articles}
+              activeCategory={activeCategory}
+              searchQuery={debouncedQuery}
+            />
+          </motion.div>
+        ) : activeTab === "articles" ? (
           <motion.div
             key="articles"
             initial={{ opacity: 0 }}

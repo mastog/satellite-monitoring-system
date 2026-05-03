@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.4",
+    "@mediapipe/tasks-vision": "^0.10.22",
     "@prisma/client": "^6.19.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
