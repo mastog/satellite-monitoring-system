@@ -5,9 +5,10 @@
 - 实时轨道可视化（3D）
 - SDG 指标分析与预测
 - 社区内容与投票系统
-- 科研文章/论文同步与检索
-- 积分与成就系统
-- 太空生存小游戏（OPS）
+- 科研文章/论文多源同步与检索
+- 气候事件监测
+- 积分、成就与 MMD 角色系统
+- 多人环境策略桌游（EcoDesk）
 
 本 README 目标是作为项目的“单一事实来源（single source of truth）”，帮助你快速理解全站结构、组件职责、技术细节和启动方式。
 
@@ -22,10 +23,12 @@
 - **Dashboard（主页）**：系统态势、文章推荐、社区亮点、预警摘要。
 - **Tracking（轨道追踪）**：地球三维场景、卫星点位、时间轴回溯、追踪目标管理。
 - **SDG**：多区域可持续发展评分、趋势图、雷达图、预测和问答。
-- **Science Lab**：科研文章/论文同步、标签、语义检索、投票。
-- **Community**：帖子/评论/Vote，情绪趋势视图。
+- **Science Lab**：科研文章/论文多源同步、标签、语义检索、投票。
+- **Climate**：气候事件监测、地图、威胁矩阵、区域分布与来源流图。
+- **Community**：帖子/评论/Vote，情绪趋势视图，附近卫星速览。
 - **Profile**：用户成长、积分、奖章、MMD 角色查看器与商店。
-- **OPS Game**：弹幕生存玩法、武器系统、敌潮与 Boss、升级选择与融合技能。
+- **EcoDesk Game**：多人角色分工环境策略桌游，回合制协作推进危机响应。
+- **About / History / Tech / Aurora**：品牌叙事、卫星历史时间线、技术展示、极光视觉演示。
 - **Admin**：管理员用户、帖子、评论管理。
 
 ## 2. 技术栈与选型
@@ -133,7 +136,6 @@ src/
 prisma/             # schema/migrations/seed
 public/             # 静态资源（纹理、模型、wasm）
   mmd-bakes/        # 服务端导出的 MMD 预烘焙缓存
-docs/               # 项目文档
 scripts/            # 工具脚本
 ```
 
@@ -145,11 +147,10 @@ scripts/            # 工具脚本
 | `/tracking`  | `src/app/tracking/page.tsx`  | `EarthScene` + `TrackedSatellitesOverlay` + `TimelineScrubber` | 3D 卫星追踪  |
 | `/sdg`       | `src/app/sdg/page.tsx`       | `SDGDashboard`                                                 | SDG 分析中心 |
 | `/science`   | `src/app/science/page.tsx`   | `ScienceLab`                                                   | 科研内容     |
+| `/climate`   | `src/app/climate/page.tsx`   | `ClimateMonitor`                                               | 气候事件分析 |
 | `/community` | `src/app/community/page.tsx` | `CommunityHub`                                                 | 社区互动     |
 | `/profile`   | `src/app/profile/page.tsx`   | `ProfileView`                                                  | 个人中心     |
-| `/game`      | `src/app/game/page.tsx`      | 游戏容器 + 多个 HUD/Modal                                      | OPS 游戏     |
-| `/ground`    | `src/app/ground/page.tsx`    | `GroundNetwork`                                                | 地面站网络   |
-| `/climate`   | `src/app/climate/page.tsx`   | `ClimateMonitor`                                               | 气候事件分析 |
+| `/game`      | `src/app/game/page.tsx`      | `EcoDeskGame`                                                  | 环境策略桌游 |
 | `/history`   | `src/app/history/page.tsx`   | `HistoryView`                                                  | 历史时间线   |
 | `/tech`      | `src/app/tech/page.tsx`      | `TechView`                                                     | 技术展示     |
 | `/aurora`    | `src/app/aurora/page.tsx`    | `AuroraView`                                                   | 视觉演示     |
@@ -164,6 +165,7 @@ scripts/            # 工具脚本
 
 - **Science / SDG / Climate**
   - 文章、论文、SDG 指标和气候事件通过服务端刷新任务获取并写入缓存。
+  - 文章限制为近 14 天内、卫星/地球观测/SDG 相关内容，最多 18 篇（每类别 ≤5）。
   - 前端接口读取缓存结果，并返回最近一次抓取时间。
 
 - **Profile / Character Viewer**
@@ -496,7 +498,7 @@ scripts/            # 工具脚本
 
 - `src/components/science/ScienceLab.tsx`
   - 技术应用
-    - `React 状态编排`：管理查询词、分类过滤、排序、分页/展示模式、加载态与错误态。
+    - `React 状态编排`：管理查询词、分类过滤（All / Earth Sci / SDG / Space Tech / Climate）、articles/papers 标签页切换、排序与错误态。
     - `Web Speech API`：将语音输入转写为检索关键词并回填查询状态。
     - `Zustand`：复用内容投票状态与用户投票行为，和社区模块保持一致口径。
     - `异步数据流`：聚合文章与论文接口返回，再执行本地二次筛选。
@@ -517,7 +519,7 @@ scripts/            # 工具脚本
 
 - `src/components/community/CommunityHub.tsx`
   - 技术应用
-    - `React tab state`：管理 Passes / Posts / Sentiment 三个视图切换。
+    - `React tab state`：管理 Community Posts / Community Sentiment / Nearest Satellites 三个视图切换。
     - `Zustand stores`：接入帖子、投票、用户状态等跨模块共享数据。
     - `路由联动`：与其它页面（如 Science、Tracking）形成跳转闭环。
   - 在该组件中的具体用法
@@ -662,63 +664,7 @@ scripts/            # 工具脚本
   - 工程价值
     - 将复杂事件流压缩为可执行的风险优先级视图。
 
-### 6.9 `components/ground`
-
-- `src/components/ground/GroundNetwork.tsx`
-  - 技术应用
-    - `复合页面编排`：统一调度地图、站点详情、覆盖分析、数据流图。
-    - `共享状态管理`：在父层维护当前选中站点和高亮链路上下文。
-    - `异步数据准备`：集中处理站点/链路数据加载、空态和错误态。
-  - 在该组件中的具体用法
-    - 作为 ground 模块总控，将“空间位置、网络覆盖、数据路径”三种视角绑定到同一数据上下文。
-    - 当用户选中某站点时，同步驱动地图聚焦、详情面板更新和链路图高亮。
-  - 工程价值
-    - 防止多个子图各自维护选中状态导致显示不一致。
-
-- `src/components/ground/StationMap.tsx`
-  - 技术应用
-    - `地图可视化`：站点坐标到屏幕坐标映射与图层渲染。
-    - `交互事件桥接`：hover/click 事件回传父层。
-    - `视觉编码`：用颜色/大小区分站点类型与状态。
-  - 在该组件中的具体用法
-    - 展示地面站空间分布，并支持点击选中与焦点定位。
-    - 与详情面板联动，选中站点后立即展示该站点链路和参数。
-  - 边界与可读性
-    - 近邻站点重叠时使用视觉层级避免点位遮挡。
-    - 视窗变化时保持站点可点击范围不失效。
-
-- `src/components/ground/StationCard.tsx`
-  - 技术应用
-    - `详情面板呈现`：结构化展示站点属性和关键链路信息。
-    - `条件渲染`：仅在存在选中站点时挂载详细信息。
-  - 在该组件中的具体用法
-    - 展示站点基础参数、连接数量、关键链路摘要和当前状态标签。
-    - 作为“地图点位”的语义补充层，避免用户只看到位置而看不到意义。
-  - 边界处理
-    - 字段缺失时使用占位展示，保证卡片结构稳定不塌陷。
-
-- `src/components/ground/CoverageAnalysis.tsx`
-  - 技术应用
-    - `几何覆盖表达`：把站点与链路能力转换为覆盖范围可视化结果。
-    - `聚合统计`：生成覆盖率、盲区、冗余区等指标。
-  - 在该组件中的具体用法
-    - 从站点分布出发计算“可覆盖区域”与“低覆盖区域”，输出给用户用于网络评估。
-    - 与选中站点上下文联动，可观察局部站点调整对整体覆盖的影响。
-  - 工程价值
-    - 将“看地图”升级为“看网络质量”，支持运维决策。
-
-- `src/components/ground/DataFlowDiagram.tsx`
-  - 技术应用
-    - `拓扑图可视化`：将站点与链路关系绘制为节点-边网络。
-    - `路径高亮`：根据当前选中站点突出相关数据流路径。
-    - `关系布局`：通过层次/力导向策略减少连线交叉噪声。
-  - 在该组件中的具体用法
-    - 呈现“数据从哪里来、经过哪些站点、到哪里去”的路径结构。
-    - 当用户从地图选择某站点时，该图同步强调与该站点相关的上游/下游链路。
-  - 边界与可读性
-    - 节点和连线过多时优先显示关键路径，弱化长尾连接，避免图面拥堵。
-
-### 6.10 页面级组件
+### 6.9 页面级组件
 
 - `src/components/about/AboutView.tsx`
   - 技术应用
@@ -806,304 +752,18 @@ scripts/            # 工具脚本
 
 ### 6.11 `components/game`（per 文件技术应用）
 
-- `src/components/game/engine/GameCanvas.tsx`
+- `src/components/game/desk/EcoDeskGame.tsx`
   - 技术应用
-    - `React + useRef`：把游戏运行时对象（`GameState`、`GameLoop`、`Input`、`Camera`）与 React 渲染解耦。
-    - `Canvas API`：显式控制 CSS 像素与内部分辨率一一对应，避免缩放模糊。
-    - `Wake Lock API`：在游戏运行时请求屏幕常亮，减少设备降频与息屏中断。
+    - `React + useState/useEffect`：管理大厅列表、房间状态、当前角色、回合行动与结算覆层等多维 UI 状态。
+    - `@react-three/fiber + drei`：在房间内渲染轻量 3D 场景作为危机视觉背景。
+    - `Framer Motion`：大厅进入/退出、结算覆层、文件夹选择与档案展开的动效编排。
+    - `Fetch API（轮询）`：定时拉取房间状态与 presence，实现多人实时感知。
   - 在该组件中的具体用法
-    - 将 UI 层 `gameAction` 映射到引擎动作（start/choose/reroll/resume/restart），形成单向命令通道。
-    - 统一承接 `onStatsUpdate/onLevelUp/onGameOver/onIntelFragment` 回调，把引擎状态同步给 HUD 与弹窗。
-    - 在初始化阶段串起 `Input -> Camera -> createGame -> GameLoop`，并在卸载时完整释放监听与锁。
+    - 统一承载从”大厅 -> 选角色 -> 就绪 -> 多轮行动提交 -> 结算覆层 -> 归档”的完整会话生命周期。
+    - 三个角色（monitoring / policy / funding）各自有独立的文件夹选择与拨盘参数 UI，行动在同一截止时限内提交。
+    - 结算后 `ResolutionOverlay` 按 `fragile / stabilizing / surge` 评级展示六项指标变化，并写入 `ArchiveEntry` 供回溯。
   - 工程价值
-    - 使 React 只负责“控制面”和“展示面”，游戏主循环保持独立、稳定、可复用。
-
-- `src/components/game/engine/GameLoop.ts`
-  - 技术应用
-    - `Fixed timestep`：逻辑更新固定步长，渲染用插值系数 `alpha`。
-    - `requestAnimationFrame`：与浏览器刷新节奏对齐。
-    - `FPS 采样`：在循环内统计实时帧率。
-  - 在该组件中的具体用法
-    - 对超大 `delta` 做上限裁剪，避免标签切换后出现“螺旋死亡”。
-    - `while (accumulator >= TICK_MS)` 保障逻辑帧确定性，渲染层只做视觉补间。
-  - 工程价值
-    - 提升战斗判定与刷新节奏的一致性，降低机器性能差异导致的平衡漂移。
-
-- `src/components/game/engine/Input.ts`
-  - 技术应用
-    - `事件采样层`：统一捕获键鼠输入并暴露轮询状态。
-    - `focus/blur 容错`：窗口失焦时清空输入状态，避免“卡键”。
-  - 在该组件中的具体用法
-    - 鼠标事件绑定在 `window` 而不是 `canvas`，保证覆盖 UI 弹层时输入仍连续。
-    - 提供 `pause` 语义字段（P/Escape）供 `GameState` 直接消费。
-  - 工程价值
-    - 将输入语义标准化，避免每个系统重复处理浏览器事件细节。
-
-- `src/components/game/engine/Camera.ts`
-  - 技术应用
-    - `Lerp 跟随`：相机平滑追踪玩家，抑制镜头抖动。
-    - `Shake 模型`：受击或爆炸时叠加短时屏幕震动。
-    - `坐标变换`：屏幕坐标与世界坐标双向映射。
-  - 在该组件中的具体用法
-    - 渲染层统一使用 `screenX/screenY` 投影，交互层使用 `worldX/worldY` 做鼠标瞄准。
-    - 提供 `isVisible` 与视口边界，支持实体可见性裁剪与离屏回收逻辑。
-  - 工程价值
-    - 把空间映射和镜头反馈集中管理，减少渲染/碰撞系统重复换算。
-
-- `src/components/game/engine/ObjectPool.ts`
-  - 技术应用
-    - `对象池复用`：通过 `active` 标记复用实体实例。
-    - `firstFree hint`：记录空闲起点，减少线性扫描成本。
-  - 在该组件中的具体用法
-    - 子弹、敌人、掉落物都基于同一池化模板，统一 `acquire/release/forEach` 生命周期。
-    - 提供 `releaseAll` 用于 `reset` 场景，确保重开时状态干净。
-  - 工程价值
-    - 显著降低 GC 抖动，保证高密度刷怪下的帧稳定。
-
-- `src/components/game/engine/SpatialHash.ts`
-  - 技术应用
-    - `Spatial Hash`：按网格桶存储实体，碰撞前先做邻域筛选。
-    - `Cantor Pairing`：将二维 cell 坐标稳定映射为单 key。
-  - 在该组件中的具体用法
-    - 每帧重建敌人索引，子弹碰撞仅查询局部半径而非全表扫描。
-    - `query` 使用去重集合避免多单元覆盖导致重复判定。
-  - 工程价值
-    - 将常态碰撞复杂度从近似 O(N\*M) 降到可控区间。
-
-- `src/components/game/engine/PRNG.ts`
-  - 技术应用
-    - `Mulberry32` 伪随机算法。
-    - 全局可重置种子，支持 deterministic 复现。
-  - 在该组件中的具体用法
-    - 被星空生成、形状生成等程序化渲染复用，确保“同 seed 同结果”。
-  - 工程价值
-    - 便于平衡测试和视觉回归定位。
-
-- `src/components/game/entities/Player.ts`
-  - 技术应用
-    - `玩家状态模型`：船体档案、成长属性、武器/被动、融合强制激活统一管理。
-    - `伤害保护阈值机制`：短窗累计伤害达阈值触发无敌帧，阈值随时间抬升。
-    - `物理移动模型`：推力、阻尼、最大速度插值、鼠标距离调速。
-  - 在该组件中的具体用法
-    - 通过 `ShipHullProfile` 做三船体差异化（生命/速度/冷却/伤害/护甲/AOE）。
-    - `damagePlayer` 在扣血同时更新短窗累计与阈值判定，直接驱动 HUD 护盾条表现。
-    - `recalcPlayerStats`（配合升级系统）在被动变化后重算派生属性。
-  - 工程价值
-    - 将“操作手感”和“成长数值”放在统一数学模型中，便于平衡迭代。
-
-- `src/components/game/entities/Enemy.ts`
-  - 技术应用
-    - `实例模板 + 初始化器`：统一敌人实体创建与字段重置。
-    - `行为分支`：追踪、固定方向冲刺、射击冷却、分裂参数等共存。
-    - `轨迹记录`：保存短历史轨迹，支持 Temporal Anchor 回溯。
-  - 在该组件中的具体用法
-    - `updateEnemy` 内聚移动、眩晕、回溯、射击计时等基础行为。
-    - `trail` 环形历史用于“回退到两秒前位置”效果，不依赖外部系统再采样。
-  - 工程价值
-    - 保持敌人行为可配置扩展，同时避免每种敌人写独立类导致维护碎片化。
-
-- `src/components/game/entities/Boss.ts`
-  - 技术应用
-    - `阶段配置表`：按血量阈值切换炮塔数、射速、召唤配置。
-    - `几何生成`：按角度等分生成炮塔射击点位。
-  - 在该组件中的具体用法
-    - `getBossPhaseConfig` 直接被 `GameState` 调用，实现 boss 生命周期中的强度爬坡。
-  - 工程价值
-    - 让 Boss 难度调优集中在配置层完成，减少逻辑代码频繁改动。
-
-- `src/components/game/entities/Bullet.ts`
-  - 技术应用
-    - `统一弹体模型`：同一数据结构承载子弹、激光、环形场、回旋体等多形态。
-    - `行为状态字段`：返回段 easing、分裂、反弹、锁定、碰撞延迟等。
-    - `逐帧更新`：在实体层处理 boomerang/harpoon/gravity/anchor 等专属运动学。
-  - 在该组件中的具体用法
-    - 回旋/鱼叉通过 `returnEaseFrames + cos` 做“出程到回程”平滑速度翻转。
-    - 激光/棱镜保存 `targetId/endX/endY/prismBranches`，供碰撞与渲染共同消费。
-  - 工程价值
-    - 避免“每武器一个实体类型”造成复杂爆炸，支持快速技能实验。
-
-- `src/components/game/entities/Pickup.ts`
-  - 技术应用
-    - `掉落生命周期模型`：散射、吸附、拾取、超时销毁。
-    - `磁吸逻辑`：进入拾取半径后切换追踪玩家。
-  - 在该组件中的具体用法
-    - XP/HP/碎片三类掉落共享同一状态机与更新函数。
-  - 工程价值
-    - 保持掉落反馈一致，减少不同掉落类型行为偏差。
-
-- `src/components/game/systems/GameState.ts`
-  - 技术应用
-    - `系统编排器`：统一调度 Player/Weapon/Wave/Collision/Particle/Render。
-    - `Canvas 上下文优化`：优先 `alpha: false`、`desynchronized: true` 降低渲染开销。
-    - `多路事件回调`：把引擎事件拆分为 game over、升级、HUD、碎片奖励等。
-  - 在该组件中的具体用法
-    - 在单帧内定义固定顺序：输入与玩家更新 -> 刷怪 -> 武器 -> 子弹/敌人 -> 碰撞 -> 粒子 -> 升级与统计广播 -> 渲染。
-    - 包含激光持续锁定、Prism 多衍射线、Aegis 运行时更新等跨系统桥接逻辑。
-    - `stats` 以节流方式（约 10fps）推送给 UI，减少 React 频繁重渲染。
-  - 工程价值
-    - 作为引擎“主时钟”，保证功能扩展时仍保持可预测的执行顺序。
-
-- `src/components/game/systems/WaveManager.ts`
-  - 技术应用
-    - `预算驱动刷怪`：常态波次按预算值和目标密度逐步投放。
-    - `敌潮机制`：独立总预算 + roster 编排，周期性进入高压窗口。
-    - `时长曲线`：目标活跃敌人数、预算、敌机上限、射手上限均随时间增长。
-  - 在该组件中的具体用法
-    - 常态期控制“陨石:敌机”倾向与射手占比，避免弹幕型难度失控。
-    - 敌潮期允许少量类型集中刷新，并按 `cost` 自动换算刷怪数量。
-    - 定时触发 Boss，并在长局中提高敌潮频率、缩短间隔。
-  - 工程价值
-    - 难度增长由“场面压力”而非瞬时弹幕峰值主导，更接近幸存者型节奏。
-
-- `src/components/game/systems/WeaponSystem.ts`
-  - 技术应用
-    - `配置到行为映射`：读取 `getWeaponLevel` 数值并转成实际发射模式。
-    - `冷却调度器`：按武器 ID 维护独立 CD，支持持续型/返回型特殊计时。
-    - `融合入口`：激活融合后接入额外发射或被动效果（如 Aegis runtime）。
-  - 在该组件中的具体用法
-    - Boomerang/Harpoon/Pursuit Halo 使用“实体消失后再进 CD”的节奏模型。
-    - 各类武器（散射、追踪、激光、地雷链路、时空锚、持续场）以专用 fire 方法实现。
-    - 每帧计算最近敌人角度作为自动索敌基准，并兼顾手动朝向武器。
-  - 工程价值
-    - 武器平衡主要在参数层迭代，发射逻辑保持可读、可测、可拆分。
-
-- `src/components/game/systems/CollisionSystem.ts`
-  - 技术应用
-    - `碰撞与结算中心`：统一处理弹体命中、AOE、接触伤害、拾取、击杀事件。
-    - `SpatialHash` 邻域检索：将标准子弹判定限制在局部候选。
-    - `武器特化判定`：激光、重力场、时空锚、电网、回旋环、鱼叉拉拽等分支结算。
-  - 在该组件中的具体用法
-    - 鱼叉仅在回程生效，线接触持续伤害、钩头接触触发安全半径约束下拉拽。
-    - 处理 Fission 命中即分裂、Ricochet 反弹、Siege 命中即爆、Prism 分支束持续伤害。
-    - 在结算中直接触发粒子、掉落、玩家受击反馈与相机震动。
-  - 工程价值
-    - 将复杂判定集中到单系统，降低多处改动导致的行为不一致。
-
-- `src/components/game/systems/UpgradeSystem.ts`
-  - 技术应用
-    - `权重抽样`：按稀有度、已有武器升级优先级、融合缺半加权生成候选。
-    - `等级门槛`：按 rarity gate 控制高阶武器出现时机。
-    - `reroll 状态机`：每次升级仅允许一次刷新。
-  - 在该组件中的具体用法
-    - 候选池同时覆盖“已有武器升级、新武器解锁、被动升级”，并做无放回抽样。
-    - 基于当前装备计算潜在融合缺口，提高相关技能出现概率。
-  - 工程价值
-    - 将“成长手感”和“构筑引导”交由可调权重控制，而非硬编码掉落表。
-
-- `src/components/game/systems/ParticleSystem.ts`
-  - 技术应用
-    - `粒子池化`：固定容量粒子阵列 + nextFree 指针。
-    - `模式化发射器`：通用 `emit` + 命名效果（explode/thrust/prismBurst 等）。
-    - `屏幕坐标预计算`：更新阶段就计算 `screenX/screenY`，减轻渲染层负担。
-  - 在该组件中的具体用法
-    - 根据不同武器语义发射不同参数组（速度、寿命、尺寸、角区间）。
-    - 所有效果共享同一 update 衰减模型，视觉风格统一。
-  - 工程价值
-    - 在高特效密度下保持可控性能和统一反馈语言。
-
-- `src/components/game/systems/fusionOrbitals.ts`
-  - 技术应用
-    - `融合运行时状态`：通过 `WeakMap<PlayerState, Runtime>` 存储每位玩家的节点状态。
-    - `弹簧阻尼运动学`：节点从基础轨道向目标平滑偏移，避免瞬移抖动。
-    - `唯一目标分配`：多节点索敌时避免重复锁定同一敌人。
-  - 在该组件中的具体用法
-    - Aegis 固定五节点同半径旋转，锁敌后按预测位置做有上限的 leash 偏转。
-    - 维护 `px/py/dir/speed/lockRatio` 供渲染拖尾和碰撞扫掠共同使用。
-  - 工程价值
-    - 将融合复杂行为封装为独立 runtime，不污染常规武器系统。
-
-- `src/components/game/rendering/Renderer.ts`
-  - 技术应用
-    - `分层渲染管线`：背景星空 -> 引力场 -> 拾取物 -> 敌人 -> 子弹 -> 玩家 -> 粒子 -> 屏幕效果。
-    - `程序化几何绘制`：依赖 `ShapeGenerator` 动态绘制飞船/敌机/陨石/Boss。
-    - `视觉特效`：推进尾流、护盾泡、激光与脉冲场等多样化 Canvas 效果。
-  - 在该组件中的具体用法
-    - 玩家推进尾焰使用轨迹 ring buffer 生成渐变丝带，而非简单直线拖尾。
-    - Temporal Anchor/Aegis/Prism 等高级技能效果在此实现高亮、扫描、辉光语言。
-    - 通过 `camera.isVisible` 裁剪离屏对象，减少无效绘制。
-  - 工程价值
-    - 在纯 2D Canvas 下实现高辨识度战斗视觉，并保持层次清晰可维护。
-
-- `src/components/game/rendering/Effects.ts`
-  - 技术应用
-    - `屏幕级后效`：闪白、暗角、扫描线统一管理。
-    - `受击脉冲`：受击时放大暗角并触发闪红。
-  - 在该组件中的具体用法
-    - `Renderer` 每帧末尾叠加效果，战斗反馈不会侵入实体绘制逻辑。
-  - 工程价值
-    - 将全屏反馈集中化，方便统一调校“冲击感”。
-
-- `src/components/game/rendering/StarField.ts`
-  - 技术应用
-    - `无限视差星空`：分层 parallax + 按 cell 程序化生成星点。
-    - `seeded PRNG`：同一网格坐标可复现相同星点布局。
-    - `缓存策略`：按 cell key 缓存并定期淘汰，控制内存增长。
-  - 在该组件中的具体用法
-    - 相机移动时无需生成实体对象，仅按视口重采样相邻网格实现“无限空间感”。
-  - 工程价值
-    - 以低成本提供稳定的空间运动背景，避免纹理大图与对象管理负担。
-
-- `src/components/game/rendering/ShapeGenerator.ts`
-  - 技术应用
-    - `程序化线稿生成`：飞船、敌机、陨石等均由几何点集动态生成。
-    - `seed 抖动`：对特定形状加入可复现随机扰动，提升多样性。
-    - `多船体设计`：viper/mantis/titan 各有独立 hull/detail/engine 配置。
-  - 在该组件中的具体用法
-    - 渲染器以统一 `drawShape/drawCircle/drawLine` 调用这些点集，复用绘制通道。
-  - 工程价值
-    - 极大减少静态贴图依赖，让视觉迭代更快、资源包更轻。
-
-- `src/components/game/ui/GameStartScreen.tsx`
-  - 技术应用
-    - `Framer Motion`：主菜单分区动效、解锁浮窗、过渡反馈。
-    - `状态编排`：飞船选择、初始技能滚轮、融合测试入口、情报解密流程。
-    - `数据映射 UI`：从武器/融合定义与知识库映射生成可视卡片与详情浮层。
-  - 在该组件中的具体用法
-    - 技能滚轮实现循环列表与连续切换动画，避免技能数量增长导致布局溢出。
-    - 解密奖励根据稀有度触发限时视觉浮窗，并与账户点数/碎片状态联动。
-  - 工程价值
-    - 把“测试入口”和“正式开局流程”整合在同一可扩展菜单框架内。
-
-- `src/components/game/ui/UpgradeModal.tsx`
-  - 技术应用
-    - `升级模态状态机`：显示候选、融合提示、reroll 状态。
-    - `稀有度主题系统`：边框、辉光、徽章颜色按 rarity 映射。
-    - `融合预判`：根据当前装备 + 候选项推断潜在融合达成路径。
-  - 在该组件中的具体用法
-    - 统一卡片高度与按钮锚点，避免不同描述长度导致布局跳动。
-    - 当 reroll 消耗后即时更新状态标签，保证交互结果可见。
-  - 工程价值
-    - 提升升级决策信息密度，同时维持战斗节奏中的快速选择体验。
-
-- `src/components/game/ui/GameHUD.tsx`
-  - 技术应用
-    - `高频 HUD 展示`：实时渲染生命、经验、时间、分数、武器列表、被动与融合状态。
-    - `Motion 数值动效`：血条、护盾阈值条、无敌态扫描线等使用动画强化反馈。
-    - `稀有度视觉编码`：武器卡按 rarity 使用不同背景与边框。
-  - 在该组件中的具体用法
-    - “Impact Buffer” 可视化直接对接玩家伤害累计阈值机制，展示无敌触发进度。
-    - 左侧列布局在信息密集场景下保持可滚动，不遮挡核心战斗区域。
-  - 工程价值
-    - 将复杂战斗状态转成可读 UI，帮助玩家做即时构筑与走位决策。
-
-- `src/components/game/ui/PauseMenu.tsx`
-  - 技术应用
-    - `模态叠层 + 动画过渡`：暂停时冻结战斗并展示状态摘要。
-    - `结构化统计卡片`：时间、分数、等级、击杀、碎片、装备一屏聚合。
-  - 在该组件中的具体用法
-    - 支持键盘恢复（P/Esc）与按钮恢复/退出双路径。
-  - 工程价值
-    - 在不中断上下文的前提下提供“短暂停顿与复盘”能力。
-
-- `src/components/game/ui/GameOverScreen.tsx`
-  - 技术应用
-    - `结算态动效编排`：标题、统计项、排行榜按延迟分层出场。
-    - `高分识别`：自动判定新纪录并高亮展示。
-  - 在该组件中的具体用法
-    - 结算数据按 waterfall 动画逐条显示，强化“局后反馈”节奏。
-    - 提供重开与退出双入口，并展示 Top 分数列表用于长期目标驱动。
-  - 工程价值
-    - 让单局闭环完整，提升重玩意愿与进度感知。
+    - 把策略桌游的多状态流程集中在单组件内，避免跨页面路由导致会话上下文丢失。
 
 ## 7. 核心业务库（`src/lib`）
 
@@ -1299,98 +959,28 @@ scripts/            # 工具脚本
     - 将教育互动逻辑从页面组件中抽离，题库扩展只需改数据层。
     - 目前为静态本地题库，不含在线更新与版本化管理。
 
-### 7.4 游戏平衡与配置
+### 7.4 游戏逻辑库
 
-- `src/lib/game/balance.ts`
+- `src/lib/game/ecoDesk.ts`
   - 技术应用
-    - 全局平衡参数中心（节奏、成长、物理、池容量）。
-    - 函数化难度曲线（线性 + 二次项增长）。
+    - EcoDesk 游戏核心常量与类型定义。
   - 在该模块中的具体机制
-    - 定义固定逻辑帧（`TICK_RATE/TICK_MS`）、玩家默认属性、刷怪距离、对象池上限、空间哈希粒度等基础常量。
-    - `xpForLevel` 基于幂函数定义升级需求，控制前中后期升级节奏。
-    - `enemyHpScale/enemyCountScale/enemySpeedScale` 统一给出随分钟增长的缩放倍率，避免各系统各自计算难度。
-    - `bossHp` 将 Boss 强度与波次绑定，形成长期局的强度爬坡。
+    - 定义 `ECO_ROLES`（monitoring/policy/funding）及各角色完整行动参数枚举。
+    - `EnvironmentState` 描述六项环境指标；`ScenarioCard` 定义危机场景结构。
+    - `RoundResolution` 规定结算输出格式（`fragile/stabilizing/surge` 等级与各指标变化）。
+    - 提供四套危机场景配置：Delta Floodplain Surge、Urban Heat Cascade、Protected Forest Breach、Industrial Plume Event。
   - 工程价值与边界
-    - 让“手感与难度”调参集中在一处，减少跨文件联动改数值的回归风险。
-    - 常量层只给出策略旋钮，具体刷新编排由 `WaveManager` 与实体系统执行。
+    - 将游戏规则配置与服务端结算逻辑分离，客户端和服务端共享同一类型层。
+    - 当前场景为静态配置，不含动态生成或难度递增机制。
 
-- `src/lib/game/enemies.ts`
+- `src/lib/game/ecoDeskServer.ts`
   - 技术应用
-    - 敌人字典配置（type-safe 数据驱动）。
-    - 出场门槛与行为能力标签化（分裂、射击、群体生成、Boss）。
+    - EcoDesk 服务端结算引擎。
   - 在该模块中的具体机制
-    - `EnemyType` 联合类型限定全敌种 ID，避免系统层出现字符串漂移。
-    - `EnemyDef` 统一描述基础生命、速度、体积、接触伤害、经验、最早出场时间及行为扩展字段。
-    - 大中小陨石通过 `splits/splitCount` 形成分裂链；射手类通过 `projectile/projectileCooldown` 启用远程行为。
-    - `spawnAfterSec` 为刷新层提供时间门槛，确保前期不会出现不该出现的敌人类型。
-    - `getSpawnableEnemies/getAllEnemyDefs` 提供刷新系统与调试工具的统一读取入口。
+    - 接收三个角色的行动提交，结合当前场景执行回合结算并返回 `RoundResolution`。
+    - 根据行动组合计算各环境指标增减，判定本轮等级。
   - 工程价值与边界
-    - 敌种扩展主要改配置，不需要侵入刷怪主逻辑。
-    - 该层只定义“是什么”，不定义“何时刷多少”（由 `WaveManager` 负责）。
-
-- `src/lib/game/weapons.ts`
-  - 技术应用
-    - 武器配置表驱动（按稀有度 + 五级成长曲线）。
-    - 通用战斗参数向量化（`damage/cooldown/projectiles/speed/range/pierce/aoe/special`）。
-  - 在该模块中的具体机制
-    - `WeaponId` + `WeaponDef` 保证武器身份、显示信息、稀有度和数值成长同源。
-    - 每个武器五级数据独立配置，支持不同武器的成长斜率与功能差异（持续型、回程型、激光型、AOE 型）。
-    - `special` 字段承载武器特有语义（例如连锁数、持续时间、触发窗口、扩展行为参数），减少结构膨胀。
-    - `getWeapon/getWeaponLevel/getAllWeapons/WEAPON_IDS` 作为系统和 UI 共享入口，避免重复硬编码。
-  - 工程价值与边界
-    - 平衡调整优先通过数据完成，显著降低对发射/碰撞逻辑的侵入频率。
-    - 该层不执行任何发射行为，仅提供静态定义与读取接口。
-
-- `src/lib/game/upgrades.ts`
-  - 技术应用
-    - 被动成长配置中心（被动词条字典）。
-    - 数值与展示元数据并行管理。
-  - 在该模块中的具体机制
-    - `UpgradeDef` 统一定义名称、描述、图标、颜色、每级增益、单位和上限等级。
-    - 同一配置同时服务于升级候选 UI 文案与玩家数值重算逻辑（`recalcPlayerStats`）。
-    - `UPGRADE_IDS` 作为升级系统候选池枚举源，保证池子与定义一致。
-  - 工程价值与边界
-    - 被动扩展无需改升级系统结构，直接加定义即可接入。
-    - 该层不处理被动与武器联动规则，组合逻辑由 synergy 与系统层判断。
-
-- `src/lib/game/synergies.ts`
-  - 技术应用
-    - 融合规则引擎（武器条件 + 被动条件统一表示）。
-    - 运行时激活判定与解锁列表规范化。
-  - 在该模块中的具体机制
-    - `SynergyRequirement` 支持 `weapon/passive` 双类型条件，统一要求 `id + level`。
-    - `SYNERGIES` 定义融合技能及其 `effect` 标识，供 WeaponSystem/GameState 挂载实际能力。
-    - `getActiveSynergies` 同时支持“自然达成条件”与“forcedSynergyIds 强制激活（测试/开局）”。
-    - `normalizeUnlockedSynergies` 去重并过滤非法 ID，保证持久化数据安全。
-    - `hasRequirementBase` 用于升级候选加权时识别“融合缺半”状态，提高关联技能出现率。
-  - 工程价值与边界
-    - 融合扩展从“写死 if-else”转为“配置 + 判定”模式，可维护性更高。
-    - 当前仅定义规则与激活判断，具体融合伤害/轨迹由系统层实现。
-
-- `src/lib/game/starterProgress.ts`
-  - 技术应用
-    - 开局技能解锁经济模型（碎片消耗 + 稀有度掉落权重）。
-    - 解锁池规范化与奖励抽取策略。
-  - 在该模块中的具体机制
-    - 定义 `STARTER_DECRYPT_COST`、基础初始技能、清场碎片概率等经济常量。
-    - `normalizeStarterUnlocked` 校验技能 ID 合法性并强制补入基础技能，防止账户数据异常导致无技能可选。
-    - `rollStarterReward` 先按稀有度权重抽档，再在同档内优先未拥有技能；同档收集完后允许重复回退。
-    - 返回 `isNew` 标志，供 UI 触发不同稀有度的解锁浮窗反馈。
-  - 工程价值与边界
-    - 在随机性和成长可预期之间做平衡，支持长期收集玩法。
-    - 抽取逻辑当前基于 `Math.random`，非加密随机，不用于安全敏感场景。
-
-- `src/lib/game/skillKnowledge.ts`
-  - 技术应用
-    - 技能到主题知识的语义映射层（玩法与站点主题联动）。
-    - 结构化知识内容模型（标题、SDG、卫星、洞察）。
-  - 在该模块中的具体机制
-    - 以 `Record<WeaponId, SkillKnowledge>` 确保每个武器 ID 都可直接索引到对应知识卡片。
-    - 字段拆分为 `title/sdg/satellite/insight`，便于 UI 以浮窗或卡片多段排版展示。
-    - 文案将武器机制隐喻到 SDG 与遥感任务语境，形成“玩法反馈 -> 知识理解”闭环。
-  - 工程价值与边界
-    - 提升游戏系统与全站卫星/SDG叙事的一致性，增强内容辨识度。
-    - 当前为静态文案映射，不包含多语言与动态知识源同步能力。
+    - 结算逻辑集中在服务端，客户端不持有分值计算权，保证多人对局一致性。
 
 ### 7.5 社区、检索与内容
 
@@ -1590,19 +1180,6 @@ scripts/            # 工具脚本
   - 工程价值与边界
     - 显著降低路径点数量与绘制成本，适合高交互或低端设备场景。
     - 几何为示意级，不保证行政边界精度和拓扑严谨性。
-
-- `src/lib/ground/data.ts`
-  - 技术应用
-    - 地面站网络域模型与样本数据集。
-    - 站点属性标准化 + 数据链路语义建模。
-  - 在该模块中的具体机制
-    - 定义 `GroundStation/DataPipeline` 类型，统一站点坐标、频段、吞吐、状态、SDG 贡献等字段。
-    - `MOCK_GROUND_STATIONS` 覆盖多运营商、多洲站点，包含 `operational/maintenance/offline` 状态用于 UI 演示差异化。
-    - `MOCK_DATA_PIPELINES` 描述“卫星 -> 地面站 -> 处理中心 -> SDG 指标”的链路及延迟，支持数据流可视化。
-    - 提供运营商颜色、站点类型标签、图形形状映射，供图例和节点渲染统一引用。
-  - 工程价值与边界
-    - 让地面网络页面在无外部接口时仍可完整演示拓扑、覆盖与链路分析。
-    - 当前数据为模拟样本，不代表真实实时站网运维状态。
 
 - `src/lib/climate/data.ts`
   - 技术应用
@@ -1877,16 +1454,14 @@ scripts/            # 工具脚本
 
 - `src/store/gameStore.ts`
   - 技术应用
-    - 游戏局外进度状态：高分榜、累计统计、飞船外观、当前对局标记。
+    - 游戏局外进度状态：高分榜、累计统计、飞船外观配置。
     - 浏览器本地持久化（`localStorage`）与运行时状态组合。
   - 具体机制
-    - `addHighScore` 把分数插入后排序并截断前十，再写入 `sat-game-highscores`。
-    - `loadHighScores` 在一次读取中恢复高分、累计统计与飞船配置三个 key，减少初始化分散 IO。
-    - `setSelectedHull/setSelectedColor` 使用“读旧值 -> 改字段 -> 回写”方式维护同一 ship 配置对象。
-    - `addRunStats` 在 `set` 回调内完成累加与持久化，保证写盘数据和内存状态一致。
+    - `setHighScores` 排序并截断前十条记录；`loadHighScores` 一次性恢复高分与飞船配置。
+    - `setSelectedHull/setSelectedColor` 维护飞船外观配置并同步持久化。
   - 工程价值与边界
-    - 价值：无需后端即可保留玩家长期进度，降低功能接入门槛。
-    - 边界：数据仅本地有效，跨设备同步需要后续接入账户化存储。
+    - 价值：无需后端即可保留本地进度数据。
+    - 边界：该 store 属于历史遗留，当前 `/game` 页面使用 EcoDeskGame，不依赖此 store。
 
 - `src/store/selectors.ts`
   - 技术应用
@@ -1916,6 +1491,7 @@ scripts/            # 工具脚本
 | `/api/user/profiles/batch`     | `POST`    | 公共 | 批量查询用户资料  |
 | `/api/user/tracked-satellites` | `GET/PUT` | 登录 | 读取/更新追踪卫星 |
 | `/api/user/equipped-medals`    | `GET/PUT` | 登录 | 读取/更新装备奖章 |
+| `/api/stats`                   | `GET`     | 公共 | 用户数/帖子数统计 |
 
 ### 9.2 Posts / Community
 
@@ -1953,7 +1529,14 @@ scripts/            # 工具脚本
 | `/api/dances`                     | `GET`         | 登录 | 可用动作列表（含退款逻辑） |
 | `/api/notifications`              | `GET/PATCH`   | 登录 | 通知读取与已读             |
 | `/api/notifications/check-medals` | `POST`        | 登录 | 新奖章通知触发             |
-| `/api/game/starter-skills`        | `GET/POST`    | 登录 | 初始技能与融合技能解锁数据 |
+| `/api/game/rooms`                 | `GET/POST`    | 登录 | EcoDesk 房间列表/创建      |
+| `/api/game/rooms/[roomId]`        | `GET`         | 登录 | 房间详情与状态             |
+| `/api/game/rooms/code/[code]`     | `GET`         | 登录 | 通过邀请码查找房间         |
+| `/api/game/rooms/[roomId]/join`   | `POST`        | 登录 | 加入房间（选择角色）       |
+| `/api/game/rooms/[roomId]/ready`  | `POST`        | 登录 | 玩家就绪                   |
+| `/api/game/rooms/[roomId]/actions`| `GET/POST`    | 登录 | 提交/查询回合行动          |
+| `/api/game/rooms/[roomId]/messages`| `GET/POST`   | 登录 | 房间内聊天消息             |
+| `/api/game/rooms/[roomId]/presence`| `POST`       | 登录 | 心跳/在线状态              |
 
 ### 9.5 Admin
 
@@ -1979,38 +1562,39 @@ scripts/            # 工具脚本
 - `Purchase`：商店购买记录
 - `ArticleCache` / `PaperCache`：科研同步缓存
 - `QuizAttempt`：问答记录
+- `GameRoom` / `GameRoomSeat` / `GameRoomRound` / `GameRoomAction` / `GameRoomMessage`：EcoDesk 多人游戏房间与对局数据
+- `GameScore`：历史遗留得分记录模型
 
-## 11. OPS 游戏技术说明
+## 11. EcoDesk 游戏技术说明
 
-### 11.1 运行架构
+### 11.1 游戏概述
 
-- `GameCanvas` 作为 UI 与引擎桥接层。
-- `GameLoop` 以固定 tick 更新，渲染与逻辑分离。
-- `GameState` 管理 player/enemy/bullet/pickup pools 与系统更新顺序。
+EcoDesk 是一款多人环境危机响应桌游，玩家分别扮演 `monitoring`、`policy`、`funding` 三个角色，每回合面对同一场景危机，同时提交各自的行动决策，由服务端统一结算并更新六项环境指标。
 
-### 11.2 性能策略
+### 11.2 环境指标
 
-- 大量使用 `ObjectPool` 降低频繁分配导致的 GC 停顿。
-- `SpatialHash` 降低碰撞检测复杂度。
-- 画布尺寸与 CSS 像素一比一映射，减少缩放重采样成本。
+- `treasury`（财政储备）、`publicTrust`（公众信任）、`airQuality`（空气质量）
+- `waterSecurity`（水资源安全）、`biodiversity`（生物多样性）、`heatRisk`（热浪风险）
+- 游戏初始值：72 / 68 / 64 / 61 / 58 / 47，任何一项跌至临界值即判定失败。
 
-### 11.3 敌人与难度
+### 11.3 角色与行动
 
-- `WaveManager` 基于时间和预算推进“常态刷怪 + 敌潮 + Boss”。
-- 使用 `spawn budget`、`target active enemies`、`roster` 控制密度与类型。
-- Boss 按间隔刷新并受 `bossHp` 缩放影响。
+- **Monitoring**：选择监测卫星文件夹、聚焦方向、扫描强度、验证深度与证据基调，影响后续轮次的情报动能。
+- **Policy**：选择政策文件夹、执行方式、力度、公共信息策略与联盟目标，直接作用于信任与指标改善。
+- **Funding**：分配预算到快速响应、韧性建设、科学研究和社区援助四个方向，控制资金燃耗与杠杆效应。
 
-### 11.4 武器与升级
+### 11.4 场景与回合
 
-- 主动技能定义位于 `lib/game/weapons.ts`，每个技能包含多级参数：`damage/cooldown/projectiles/speed/range/pierce/aoe/special`。
-- 被动定义在 `lib/game/upgrades.ts`。
-- 升级候选由 `UpgradeSystem` 生成，支持 reroll。
-- 融合技能定义在 `lib/game/synergies.ts`（当前已有 `Aegis Drone Constellation`）。
+- 四个轮转危机场景：`Delta Floodplain Surge`、`Urban Heat Cascade`、`Protected Forest Breach`、`Industrial Plume Event`。
+- 每轮由服务端按当前指标、角色行动和场景类型统一结算，并给出 `fragile / stabilizing / surge` 评级。
+- 默认最多 8 个回合，所有回合结束或指标崩溃时游戏结束。
 
-### 11.5 进度与解锁
+### 11.5 多人房间机制
 
-- `starterProgress.ts` 管理开局可选技能、碎片消耗与按稀有度加权抽取。
-- 游戏内通过 Boss 相关事件触发碎片获取，再在菜单侧执行解锁。
+- 房间以随机短码标识，支持大厅列表与邀请码加入。
+- 玩家就绪后房间进入 `active` 状态；每回合有截止时限，超时自动提交当前决策。
+- 房间内附带实时聊天，服务端通过轮询 presence 接口维护在线状态。
+- 结算后可查看 `RoundResolution` 日志，追溯每轮决策的影响。
 
 ## 12. 样式系统
 
@@ -2027,8 +1611,6 @@ scripts/            # 工具脚本
 | ------------------------ | -------------------------------------- |
 | `prisma/seed.ts`         | 初始化用户、帖子、评论、投票等测试数据 |
 | `scripts/seedVotes.ts`   | 仅针对种子账号重建投票分布             |
-| `docs/seed-accounts.md`  | 测试账号清单                           |
-| `GAME_SKILLS_SUMMARY.md` | 游戏技能文档（独立于 README）          |
 
 ## 14. 开发建议与排障
 

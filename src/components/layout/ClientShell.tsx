@@ -286,13 +286,10 @@ export default function ClientShell({
   ]);
 
   const topOffset = "4rem";
-  const isGroundRoute = pathname === "/ground";
   const isGameRoute = pathname === "/game";
-  const mainClassName = isGroundRoute
-    ? "z-0 min-h-0 w-full min-w-0 overflow-hidden"
-    : isGameRoute
-      ? "z-0 min-h-0 overflow-hidden"
-      : "z-0 min-h-0 overflow-y-auto";
+  const mainClassName = isGameRoute
+    ? "z-0 min-h-0 overflow-hidden"
+    : "z-0 min-h-0 overflow-y-auto";
 
   // Maintains the scroll position for pages that keep their own vertical
   // document flow when the shared footer changes height.
@@ -302,7 +299,7 @@ export default function ClientShell({
   useEffect(() => {
     const main = mainRef.current;
     if (!main) return;
-    if (isGameRoute || isGroundRoute) return;
+    if (isGameRoute) return;
     prevMainHeight.current = main.clientHeight;
 
     const observer = new ResizeObserver(() => {
@@ -316,7 +313,7 @@ export default function ClientShell({
 
     observer.observe(main);
     return () => observer.disconnect();
-  }, [isGameRoute, isGroundRoute]);
+  }, [isGameRoute]);
 
   return (
     <div className="h-screen w-screen overflow-hidden relative flex flex-col">
