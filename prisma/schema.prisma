@@ -26,6 +26,10 @@ model User {
   purchases          Purchase[]
   quizAttempts       QuizAttempt[]
   gameScores         GameScore[]
+  createdGameRooms   GameRoom[]        @relation("GameRoomCreator")
+  gameRoomSeats      GameRoomSeat[]
+  gameRoomActions    GameRoomAction[]
+  gameRoomMessages   GameRoomMessage[]
 
   @@map("users")
 }
@@ -246,4 +250,108 @@ model GameScore {
   @@index([userId, score(sort: Desc)])
   @@index([userId, createdAt])
   @@map("game_scores")
+}
+
+model GameRoom {
+  id             String    @id @default(uuid())
+  code           String    @unique
+  status         String    @default("waiting")
+  title          String
+  createdById    String    @map("created_by_id")
+  currentRound   Int       @default(1) @map("current_round")
+  maxRounds      Int       @default(8) @map("max_rounds")
+  scenarioSeed   Int       @default(0) @map("scenario_seed")
+  treasury       Int       @default(72)
+  publicTrust    Int       @default(68) @map("public_trust")
+  airQuality     Int       @default(64) @map("air_quality")
+  waterSecurity  Int       @default(61) @map("water_security")
+  biodiversity   Int       @default(58)
+  heatRisk       Int       @default(47) @map("heat_risk")
+  deadlineAt     DateTime? @map("deadline_at")
+  lastResolvedAt DateTime? @map("last_resolved_at")
+  winner         String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  createdBy User              @relation("GameRoomCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  seats     GameRoomSeat[]
+  rounds    GameRoomRound[]
+  actions   GameRoomAction[]
+  messages  GameRoomMessage[]
+
+  @@index([status, updatedAt])
+  @@index([createdById])
+  @@map("game_rooms")
+}
+
+model GameRoomSeat {
+  id         String   @id @default(uuid())
+  roomId     String   @map("room_id")
+  userId     String   @map("user_id")
+  role       String
+  ready      Boolean  @default(false)
+  joinedAt   DateTime @default(now()) @map("joined_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+
+  room GameRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, role])
+  @@unique([roomId, userId])
+  @@index([userId, joinedAt])
+  @@index([roomId, lastSeenAt])
+  @@map("game_room_seats")
+}
+
+model GameRoomRound {
+  id             String   @id @default(uuid())
+  roomId         String   @map("room_id")
+  roundNumber    Int      @map("round_number")
+  scenarioId     String   @map("scenario_id")
+  scenarioTitle  String   @map("scenario_title")
+  snapshotBefore String   @default("{}") @map("snapshot_before")
+  resolutionLog  String   @default("[]") @map("resolution_log")
+  createdAt      DateTime @default(now()) @map("created_at")
+  resolvedAt     DateTime? @map("resolved_at")
+
+  room GameRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, roundNumber])
+  @@index([roomId, resolvedAt])
+  @@map("game_room_rounds")
+}
+
+model GameRoomAction {
+  id          String   @id @default(uuid())
+  roomId       String   @map("room_id")
+  roundNumber  Int      @map("round_number")
+  userId       String   @map("user_id")
+  role         String
+  payload      String
+  submittedAt  DateTime @default(now()) @map("submitted_at")
+
+  room GameRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, roundNumber, role])
+  @@index([roomId, roundNumber])
+  @@index([userId, submittedAt])
+  @@map("game_room_actions")
+}
+
+model GameRoomMessage {
+  id         String   @id @default(uuid())
+  roomId      String   @map("room_id")
+  userId      String?  @map("user_id")
+  userName    String   @map("user_name")
+  kind        String   @default("text")
+  body        String
+  metadata    String   @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  room GameRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([roomId, createdAt])
+  @@map("game_room_messages")
 }

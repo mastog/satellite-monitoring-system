@@ -150,7 +150,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: "game",
-    label: "OPS",
+    label: "DSK",
     path: "/game",
     icon: (
       <svg
@@ -222,9 +222,13 @@ export default function TopBar({
   const { userPreferences, setUserPreferences } = useAppStore();
 
   useEffect(() => {
-    setTime(new Date());
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    const updateClock = () => setTime(new Date());
+    const initialTick = window.setTimeout(updateClock, 0);
+    const timer = window.setInterval(updateClock, 1000);
+    return () => {
+      window.clearTimeout(initialTick);
+      window.clearInterval(timer);
+    };
   }, []);
 
   const hours = time ? time.getUTCHours() : 0;
