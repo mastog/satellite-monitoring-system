@@ -812,7 +812,8 @@ export default function ScienceStreamMode({
             >
               INPUT LAYER
             </div>
-            <div className="mt-4 rounded-[24px] border px-4 py-4"
+            <div
+              className="mt-4 rounded-[24px] border px-4 py-4"
               style={{
                 background:
                   "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
@@ -832,8 +833,9 @@ export default function ScienceStreamMode({
                 className="mt-2 text-[13px] leading-relaxed"
                 style={{ color: "var(--text-secondary)" }}
               >
-                Vertical browsing mode for rapid article intake. Swipe or use camera
-                gestures to move between randomized science stories.
+                Vertical browsing mode for rapid article intake. Allow camera
+                access for face and gesture control, and allow pop-up redirects so
+                article visits can open when you trigger them.
               </p>
               <div className="mt-4 flex items-center gap-2">
                 <div
@@ -867,12 +869,15 @@ export default function ScienceStreamMode({
                 </button>
               </div>
             </div>
-            <div className="mt-4 space-y-3">
+            {/* Keeps the stream instruction list readable when the panel height compresses. */}
+            <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
               {[
                 "Touch swipe switches the article deck.",
                 "Thumb up advances to the next article in the stream.",
                 "Thumb down returns to the previous article.",
                 "Victory opens the current article link once per gesture.",
+                "Grant camera permission when the browser prompt appears so head tilt and gesture controls can activate.",
+                "Allow pop-up redirects for this site because article visits open in a new tab from the current card.",
               ].map((copy) => (
                 <div
                   key={copy}

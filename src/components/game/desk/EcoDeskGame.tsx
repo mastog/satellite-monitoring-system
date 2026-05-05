@@ -11,6 +11,7 @@ import {
 import { Canvas } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
 import { useAuthStore } from "@/store/authStore";
+import { useAppStore } from "@/store/appStore";
 import {
   ECO_ROLES,
   FUNDING_FILES,
@@ -822,6 +823,7 @@ function MessageComposer({
 
 export default function EcoDeskGame() {
   const { checkAuth, isAuthenticated, isLoading, user } = useAuthStore();
+  const { setShowAuthModal } = useAppStore();
   const [rooms, setRooms] = useState<LobbyRoomSummary[]>([]);
   const [activeRoom, setActiveRoom] = useState<RoomState | null>(null);
   const [roomCodeInput, setRoomCodeInput] = useState("");
@@ -1437,21 +1439,52 @@ export default function EcoDeskGame() {
     );
   }
 
+  // Shows the sign-in entry state before the room registry becomes available.
   if (!isAuthenticated || !user) {
     return (
-      <div className="flex h-full min-h-0 items-center justify-center bg-[#09090d] p-8">
-        <div className="max-w-xl rounded-[34px] border border-white/10 bg-[#111217]/80 p-8 text-stone-200 shadow-[0_32px_80px_rgba(0,0,0,0.35)] backdrop-blur-md">
-          <p className="text-[11px] uppercase tracking-[0.32em] text-[#dcb980]">
-            ORBITAL GOVERNANCE ACCESS
-          </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-[0.04em] text-white">
-            Bureau of Salvaged Earth
-          </h1>
-          <p className="mt-4 text-sm leading-7 text-stone-300/78">
-            This replacement game is a cooperative, networked policy room. Sign
-            in first, then assemble a three-person desk and run synchronized
-            environmental turns as Monitoring, Policy, and Funding.
-          </p>
+      <div className="relative flex h-full min-h-0 items-center justify-center bg-[radial-gradient(circle_at_18%_12%,rgba(212,178,122,0.16),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(58,96,109,0.24),transparent_34%),#08080d] p-5 text-stone-100 sm:p-8">
+        <div className="relative w-full max-w-[1180px] overflow-hidden rounded-[34px] border border-white/10 bg-[linear-gradient(155deg,rgba(24,22,22,0.92),rgba(11,12,16,0.9))] px-7 py-8 text-center shadow-[0_28px_90px_rgba(0,0,0,0.46)] backdrop-blur-md sm:px-9 sm:py-10">
+          <div className="pointer-events-none absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-[#d4b27a]/14 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-8 right-8 h-24 w-24 rounded-full bg-[#5e7d8c]/10 blur-2xl" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(140deg,rgba(255,255,255,0.04),transparent_32%,transparent_72%,rgba(255,255,255,0.02))]" />
+          <div className="relative flex flex-col items-center justify-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-[18px] border border-[#d4b27a]/28 bg-[linear-gradient(180deg,rgba(212,178,122,0.18),rgba(255,255,255,0.04))] shadow-[0_12px_28px_rgba(212,178,122,0.12)]">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#d4b27a]" />
+            </div>
+            <p className="text-[11px] uppercase tracking-[0.32em] text-[#d4b27a]">
+              BUREAU OF SALVAGED EARTH
+            </p>
+            <h1 className="mt-3 text-[1.08rem] font-semibold uppercase tracking-[0.18em] text-white">
+              Enter the Governance Desk
+            </h1>
+            <p className="mt-4 max-w-md text-[15px] leading-7 text-stone-300/78">
+              Sign in to claim a desk role, coordinate synchronized environmental
+              response rounds, return to your assigned seat, and keep active
+              operations within reach.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+              {ECO_ROLES.map((role) => (
+                <div
+                  key={role}
+                  className="rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em]"
+                  style={{
+                    color: ROLE_META[role].accent,
+                    borderColor: `${ROLE_META[role].accent}35`,
+                    background: `${ROLE_META[role].accent}12`,
+                  }}
+                >
+                  {ROLE_META[role].short}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAuthModal(true)}
+              className="mt-7 rounded-full border border-[#e8d1a6]/70 bg-[linear-gradient(135deg,#f1dfbc,#cfa86a)] px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.24em] text-stone-950 transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(212,178,122,0.22)]"
+            >
+              Sign In to Access
+            </button>
+          </div>
         </div>
       </div>
     );
