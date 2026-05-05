@@ -105,7 +105,7 @@ type DeskFileId =
   | "funding_release"
   | "funding_match";
 
-// Seeds new role drafts before server-saved actions are loaded.
+// Seeds monitoring form state before the room payload hydrates.
 const DEFAULT_MONITORING: MonitoringAction = {
   dossierId: MONITORING_DOSSIERS[0].id,
   focus: "air",
@@ -116,6 +116,7 @@ const DEFAULT_MONITORING: MonitoringAction = {
   fieldRelay: true,
 };
 
+// Seeds policy form state before the room payload hydrates.
 const DEFAULT_POLICY: PolicyAction = {
   policyId: POLICY_FILES[0].id,
   emphasis: "compliance",
@@ -126,6 +127,7 @@ const DEFAULT_POLICY: PolicyAction = {
   legalShield: true,
 };
 
+// Seeds funding form state before the room payload hydrates.
 const DEFAULT_FUNDING: FundingAction = {
   rapid: 25,
   resilience: 25,
@@ -137,7 +139,7 @@ const DEFAULT_FUNDING: FundingAction = {
   externalMatch: false,
 };
 
-// Defines role names, colors, and short labels used across the desk UI.
+// Maps role labels, colors, and short codes for the desk UI.
 const ROLE_META: Record<
   EcoRole,
   { label: string; accent: string; paper: string; short: string }
@@ -162,7 +164,7 @@ const ROLE_META: Record<
   },
 };
 
-// Defines role guidance shown in the left control column and shared dossier.
+// Maps the role copy shown in the control column and shared dossier.
 const ROLE_PLAYBOOK: Record<
   EcoRole,
   {
@@ -240,7 +242,7 @@ const OVERSIGHT_LABELS: Record<FundingAction["oversight"], string> = {
   fast: "Fast release",
 };
 
-// Sets the initial draggable coordinates and z-order for each desk file.
+// Stores the initial paper stack positions for each desk file.
 const DEFAULT_FILE_LAYOUTS: Record<
   DeskFileId,
   { x: number; y: number; z: number }
@@ -256,6 +258,10 @@ const DEFAULT_FILE_LAYOUTS: Record<
   funding_release: { x: 0, y: 118, z: 61 },
   funding_match: { x: 240, y: -26, z: 62 },
 };
+
+const DESK_OVERLAY_Z = 2000;
+const DESK_STAMP_Z = 1990;
+const FLOATING_ERROR_Z = 2010;
 
 function minutesLeft(deadlineAt: string | null) {
   if (!deadlineAt) return "OPEN";
@@ -313,7 +319,7 @@ function DialChip({
   );
 }
 
-// Renders compact loading feedback inside network-bound buttons.
+// Renders loading feedback inside network-bound buttons.
 function ButtonLoader({
   label,
   tone = "light",
@@ -330,6 +336,20 @@ function ButtonLoader({
       />
       <span>{label}</span>
     </span>
+  );
+}
+
+function FloatingError({ message }: { message: string }) {
+  return (
+    <div
+      className="pointer-events-none absolute bottom-5 left-5 w-[min(26rem,calc(100%-2.5rem))] rounded-[24px] border border-[#e5b59f]/28 bg-[linear-gradient(150deg,rgba(59,17,20,0.94),rgba(23,12,16,0.96))] px-4 py-3.5 text-[#fff1e8] shadow-[0_24px_70px_rgba(0,0,0,0.38)] backdrop-blur-md"
+      style={{ zIndex: FLOATING_ERROR_Z }}
+    >
+      <p className="text-[10px] uppercase tracking-[0.28em] text-[#f1bf9d]">
+        Desk Alert
+      </p>
+      <p className="mt-2 text-sm leading-6 text-[#fff3eb]/92">{message}</p>
+    </div>
   );
 }
 
@@ -381,7 +401,7 @@ function ArchiveEntry({
   );
 }
 
-// Shows the metric changes after all role files resolve a quarter.
+// Shows metric changes for the resolved quarter.
 function ResolutionOverlay({
   summary,
   onClose,
@@ -411,7 +431,8 @@ function ResolutionOverlay({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 z-[80] flex items-center justify-center bg-[radial-gradient(circle_at_center,rgba(13,14,18,0.78),rgba(5,6,8,0.9))] px-8"
+        className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_center,rgba(13,14,18,0.78),rgba(5,6,8,0.9))] px-8"
+        style={{ zIndex: DESK_OVERLAY_Z }}
       >
         <motion.div
           initial={{ opacity: 0, y: 24, scale: 0.96 }}
@@ -486,7 +507,7 @@ function ResolutionOverlay({
   );
 }
 
-// Flashes the filed role stamp after a submitted desk action.
+// Shows the filed role stamp after a submitted desk action.
 function DeskStampBurst({
   role,
 }: {
@@ -500,7 +521,8 @@ function DeskStampBurst({
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-        className="pointer-events-none absolute left-1/2 top-1/2 z-[78] -translate-x-1/2 -translate-y-1/2"
+        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{ zIndex: DESK_STAMP_Z }}
       >
         <div
           className="rounded-[28px] border-2 px-7 py-5 text-center shadow-[0_28px_80px_rgba(0,0,0,0.32)]"
@@ -520,7 +542,7 @@ function DeskStampBurst({
   );
 }
 
-// Renders the walnut desk, paper props, and environmental window state.
+// Renders the desk scene, paper props, and window state.
 function DeskBackdrop({
   scenario,
   metrics,
@@ -607,7 +629,7 @@ function DeskBackdrop({
   );
 }
 
-// Renders a draggable paper file with live z-order and position state.
+// Renders one draggable desk file.
 function DeskFile({
   fileId,
   title,
@@ -827,11 +849,18 @@ export default function EcoDeskGame() {
   const [fundingDraft, setFundingDraft] = useState<FundingAction>(DEFAULT_FUNDING);
   const previousMetricsRef = useRef<RoomState["metrics"] | null>(null);
   const previousResolvedRoundRef = useRef<number | null>(null);
+  // Tracks the room allowed to receive async refresh responses.
+  const activeRoomIdRef = useRef<string | null>(null);
   const busy = busyAction !== null;
 
   useEffect(() => {
     void checkAuth();
   }, [checkAuth]);
+
+  // Keeps the async room refresh pinned to the currently opened room.
+  useEffect(() => {
+    activeRoomIdRef.current = activeRoom?.id ?? null;
+  }, [activeRoom?.id]);
 
   const refreshRooms = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -842,11 +871,25 @@ export default function EcoDeskGame() {
   }, [isAuthenticated]);
 
   const refreshActiveRoom = useCallback(async () => {
-    if (!activeRoom?.id) return;
-    const res = await fetch(`/api/game/rooms/${activeRoom.id}`);
+    const roomId = activeRoom?.id;
+    if (!roomId) return;
+    const res = await fetch(`/api/game/rooms/${roomId}`);
     if (!res.ok) return;
     const data = await res.json();
+    if (activeRoomIdRef.current !== roomId) return;
     setActiveRoom(data.room ?? null);
+  }, [activeRoom?.id]);
+
+  const refreshRoomPresence = useCallback(async () => {
+    if (!activeRoom?.id) return;
+    try {
+      await fetch(`/api/game/rooms/${activeRoom.id}/presence`, {
+        method: "POST",
+        keepalive: true,
+      });
+    } catch {
+      // Ignores transient heartbeat failures.
+    }
   }, [activeRoom?.id]);
 
   useEffect(() => {
@@ -870,6 +913,40 @@ export default function EcoDeskGame() {
     }, 1500);
     return () => window.clearInterval(timer);
   }, [activeRoom?.id, refreshActiveRoom]);
+
+  // Refreshes room presence while the room stays open in the browser.
+  useEffect(() => {
+    if (!activeRoom?.id) return;
+
+    void refreshRoomPresence();
+
+    const timer = window.setInterval(() => {
+      void refreshRoomPresence();
+    }, 20_000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void refreshRoomPresence();
+      }
+    };
+    const handleFocus = () => {
+      void refreshRoomPresence();
+    };
+    const handleOnline = () => {
+      void refreshRoomPresence();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [activeRoom?.id, refreshRoomPresence]);
 
   // Builds the resolution overlay from the latest archived quarter.
   useEffect(() => {
@@ -1198,6 +1275,7 @@ export default function EcoDeskGame() {
       if (!res.ok) throw new Error(data.error || "Failed to create room");
       const roomRes = await fetch(`/api/game/rooms/${data.roomId}`);
       const roomData = await roomRes.json();
+      activeRoomIdRef.current = roomData.room?.id ?? null;
       setActiveRoom(roomData.room);
       await refreshRooms();
     } catch (error) {
@@ -1236,6 +1314,7 @@ export default function EcoDeskGame() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to join room");
+      activeRoomIdRef.current = data.room?.id ?? null;
       setActiveRoom(data.room);
       setPendingRoom(null);
       await refreshRooms();
@@ -1254,6 +1333,7 @@ export default function EcoDeskGame() {
       const res = await fetch(`/api/game/rooms/${roomId}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to return to room");
+      activeRoomIdRef.current = data.room?.id ?? null;
       setActiveRoom(data.room);
     } catch (error) {
       setTextError(error instanceof Error ? error.message : "Failed to return to room");
@@ -1275,6 +1355,7 @@ export default function EcoDeskGame() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to update seat");
+        activeRoomIdRef.current = data.room?.id ?? null;
         setActiveRoom(data.room);
       } catch (error) {
         setTextError(error instanceof Error ? error.message : "Failed to update seat");
@@ -1297,6 +1378,7 @@ export default function EcoDeskGame() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to submit file");
+      activeRoomIdRef.current = data.room?.id ?? null;
       setActiveRoom(data.room);
       if (activeRoom.userRole) {
         setStampRole(activeRoom.userRole);
@@ -1318,7 +1400,10 @@ export default function EcoDeskGame() {
         body: JSON.stringify({ kind: "text", message }),
       });
       const data = await res.json();
-      if (res.ok) setActiveRoom(data.room);
+      if (res.ok) {
+        activeRoomIdRef.current = data.room?.id ?? null;
+        setActiveRoom(data.room);
+      }
     },
     [activeRoom]
   );
@@ -1336,7 +1421,10 @@ export default function EcoDeskGame() {
         }),
       });
       const data = await res.json();
-      if (res.ok) setActiveRoom(data.room);
+      if (res.ok) {
+        activeRoomIdRef.current = data.room?.id ?? null;
+        setActiveRoom(data.room);
+      }
     },
     [activeRoom]
   );
@@ -1371,7 +1459,7 @@ export default function EcoDeskGame() {
 
   if (!activeRoom) {
     return (
-      <div className="h-full min-h-0 overflow-hidden bg-[radial-gradient(circle_at_18%_12%,rgba(212,178,122,0.16),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(58,96,109,0.24),transparent_34%),#08080d] px-5 py-5 text-stone-100 [&_button:not(:disabled)]:cursor-pointer [&_button:disabled]:cursor-not-allowed">
+      <div className="relative h-full min-h-0 overflow-hidden bg-[radial-gradient(circle_at_18%_12%,rgba(212,178,122,0.16),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(58,96,109,0.24),transparent_34%),#08080d] px-5 py-5 text-stone-100 [&_button:not(:disabled)]:cursor-pointer [&_button:disabled]:cursor-not-allowed">
         <div className="mx-auto grid h-full min-h-0 max-w-[1420px] gap-5 xl:grid-cols-[0.58fr_1.42fr]">
           <section className="relative flex min-h-0 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(155deg,rgba(25,23,24,0.96),rgba(10,10,14,0.98))] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.4)]">
             <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#d4b27a]/12 blur-3xl" />
@@ -1382,8 +1470,8 @@ export default function EcoDeskGame() {
               Environmental triage desk.
             </h1>
             <p className="mt-2 max-w-md text-[13px] leading-6 text-stone-300/76">
-              Select a default responsibility, open a coded desk, or claim an
-              open seat from the active registry.
+              Select a default responsibility, open a coded desk, or claim one
+              untouched seat from the active registry.
             </p>
 
             <div className="mt-4 grid gap-2">
@@ -1439,8 +1527,8 @@ export default function EcoDeskGame() {
                   </p>
                   <p className="mt-1 text-lg font-semibold">Open as {selectedRole.toUpperCase()}</p>
                   <p className="mt-1 text-[13px] leading-5 text-stone-700/82">
-                    Room code is assigned automatically. Seats stay replaceable when
-                    players go offline.
+                    Room code is assigned automatically. Each claimed seat
+                    stays locked to its first operator for the life of the room.
                   </p>
                 </>
               )}
@@ -1450,21 +1538,15 @@ export default function EcoDeskGame() {
             </div>
           </section>
 
-          {textError && (
-            <div className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100 xl:col-span-2">
-              {textError}
-            </div>
-          )}
-
-          <section className="flex min-h-0 flex-col rounded-[34px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,15,20,0.96),rgba(7,7,11,0.99))] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.38)]">
+          <section className="relative flex min-h-0 flex-col rounded-[34px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,15,20,0.96),rgba(7,7,11,0.99))] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.38)]">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.28em] text-[#d4b27a]">
                   Active room registry
                 </p>
                 <p className="mt-1.5 max-w-xl text-sm leading-6 text-stone-300/74">
-                  Rooms with no online players are removed automatically. Vacant
-                  seats remain claimable, even after the simulation has begun.
+                  Rooms with no online players are removed automatically. Only
+                  never-claimed seats can still be joined once a room is live.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -1517,16 +1599,23 @@ export default function EcoDeskGame() {
                 <div className="mt-4 grid gap-2 sm:grid-cols-3">
                   {ECO_ROLES.map((role) => {
                     const available = pendingRoom.availableRoles.includes(role);
+                    const isBoundRole = pendingRoom.userRole === role;
                     return (
                       <button
                         key={role}
                         type="button"
-                        disabled={!available || busy}
-                        onClick={() => void joinRoomAsRole(pendingRoom.id, role)}
+                        disabled={(!available && !isBoundRole) || busy}
+                        onClick={() =>
+                          isBoundRole
+                            ? void openRoom(pendingRoom.id)
+                            : void joinRoomAsRole(pendingRoom.id, role)
+                        }
                         className="cursor-pointer rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-35"
                         style={{
                           borderColor: `${ROLE_META[role].accent}55`,
-                          background: available
+                          background: isBoundRole
+                            ? `${ROLE_META[role].accent}22`
+                            : available
                             ? `${ROLE_META[role].accent}18`
                             : "rgba(255,255,255,0.025)",
                         }}
@@ -1537,6 +1626,10 @@ export default function EcoDeskGame() {
                         <p className="mt-2 text-sm font-medium text-white">
                           {busyAction === `join:${pendingRoom.id}:${role}` ? (
                             <ButtonLoader label="Joining" />
+                          ) : busyAction === `return:${pendingRoom.id}` ? (
+                            <ButtonLoader label="Return" />
+                          ) : isBoundRole ? (
+                            `Return as ${ROLE_META[role].label}`
                           ) : available ? (
                             `Join ${ROLE_META[role].label}`
                           ) : (
@@ -1588,21 +1681,30 @@ export default function EcoDeskGame() {
                       {ECO_ROLES.map((role) => {
                         const seat = room.seats.find((entry) => entry.role === role);
                         const available = !seat;
+                        const isBoundRole = room.role === role;
                         return (
                           <button
                             key={`${room.id}-${role}`}
                             type="button"
-                            disabled={!available || busy}
-                            onClick={() => void joinRoomAsRole(room.id, role)}
+                            disabled={(!available && !isBoundRole) || busy}
+                            onClick={() =>
+                              isBoundRole
+                                ? void openRoom(room.id)
+                                : void joinRoomAsRole(room.id, role)
+                            }
                             className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-left transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                             style={{
-                              borderColor: available
+                              borderColor: isBoundRole
+                                ? `${ROLE_META[role].accent}70`
+                                : available
                                 ? `${ROLE_META[role].accent}55`
                                 : "rgba(255,255,255,0.08)",
-                              background: available
+                              background: isBoundRole
+                                ? `${ROLE_META[role].accent}1e`
+                                : available
                                 ? `${ROLE_META[role].accent}13`
                                 : "rgba(255,255,255,0.025)",
-                              opacity: available ? 1 : 0.72,
+                              opacity: available || isBoundRole ? 1 : 0.72,
                             }}
                           >
                             <span>
@@ -1616,6 +1718,10 @@ export default function EcoDeskGame() {
                             <span className="text-[10px] uppercase tracking-[0.18em] text-stone-400">
                               {busyAction === `join:${room.id}:${role}` ? (
                                 <ButtonLoader label="claiming" />
+                              ) : busyAction === `return:${room.id}` ? (
+                                <ButtonLoader label="return" />
+                              ) : isBoundRole ? (
+                                "return"
                               ) : seat ? (
                                 seat.userName
                               ) : (
@@ -1639,6 +1745,7 @@ export default function EcoDeskGame() {
                 </div>
               )}
             </div>
+            {textError && <FloatingError message={textError} />}
           </section>
         </div>
       </div>
@@ -1646,7 +1753,8 @@ export default function EcoDeskGame() {
   }
 
   return (
-    <div className="h-full min-h-0 overflow-hidden bg-[#0a090a] text-stone-100 [&_button:not(:disabled)]:cursor-pointer [&_button:disabled]:cursor-not-allowed">
+    <div className="relative h-full min-h-0 overflow-hidden bg-[#0a090a] text-stone-100 [&_button:not(:disabled)]:cursor-pointer [&_button:disabled]:cursor-not-allowed">
+      {textError && <FloatingError message={textError} />}
       <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden px-6 py-5">
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
@@ -1666,7 +1774,11 @@ export default function EcoDeskGame() {
             </span>
             <button
               type="button"
-              onClick={() => setActiveRoom(null)}
+              onClick={() => {
+                setTextError(null);
+                activeRoomIdRef.current = null;
+                setActiveRoom(null);
+              }}
               className="cursor-pointer rounded-full border border-white/10 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-stone-300 transition hover:border-white/25"
             >
               Lobby
@@ -1775,6 +1887,7 @@ export default function EcoDeskGame() {
                   disabled={
                     busy ||
                     actionSubmitting ||
+                    activeRoom.status === "finished" ||
                     (activeRoom.status !== "waiting" && !activeRoom.userRole)
                   }
                   className="cursor-pointer rounded-full bg-[#eadcc5] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-stone-900 transition hover:bg-[#f6e8d1] disabled:cursor-not-allowed disabled:opacity-50"
@@ -1790,8 +1903,10 @@ export default function EcoDeskGame() {
                       : mySeat?.ready
                         ? "Unlock Seat"
                         : "Ready Seat"
-                    : actionSubmitting
-                      ? <ButtonLoader label="Filing" tone="dark" />
+                      : actionSubmitting
+                        ? <ButtonLoader label="Filing" tone="dark" />
+                      : activeRoom.status === "finished"
+                        ? "Session Closed"
                       : mySubmission
                       ? "Refill File"
                       : "Submit File"}

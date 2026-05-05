@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/middleware";
-import { loadRoomState, submitRoomAction } from "@/lib/game/ecoDeskServer";
+import { touchRoomPresence } from "@/lib/game/ecoDeskServer";
 
 export async function POST(
   req: NextRequest,
@@ -12,25 +12,17 @@ export async function POST(
   }
 
   try {
-    const body = (await req.json()) as { payload?: unknown };
     const { roomId } = await context.params;
-
-    await submitRoomAction({
-      roomId,
-      userId: user.id,
-      payload: JSON.stringify(body.payload ?? {}),
-    });
-
-    const room = await loadRoomState(roomId, user.id);
-    return NextResponse.json({ room });
+    await touchRoomPresence({ roomId, userId: user.id });
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("game/rooms/[roomId]/actions POST error:", error);
+    console.error("game/rooms/[roomId]/presence POST error:", error);
     return NextResponse.json(
       {
         error:
           error instanceof Error
             ? error.message
-            : "Failed to submit round action",
+            : "Failed to refresh room presence",
       },
       { status: 400 }
     );

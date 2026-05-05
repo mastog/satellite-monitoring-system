@@ -312,14 +312,16 @@ export function resolveRound(
     Math.min(24, Math.round((coordination - 26) / 2))
   );
 
+  // Applies the quarter treasury burn from policy and funding posture.
   next.treasury = clampMetric(
     next.treasury -
-      Math.round(policyScore * 0.18) -
-      Math.round(fundingTotal * 0.22) +
-      (funding?.reserveRelease ? -8 : 0) +
+      Math.round(policyScore * 0.08) -
+      Math.round(fundingTotal * 0.06) +
+      (funding?.reserveRelease ? -4 : 0) +
       (funding?.externalMatch ? 3 : 0)
   );
 
+  // Applies trust movement from coordination quality and public framing.
   next.publicTrust = clampMetric(
     next.publicTrust +
       Math.round(coordination * 0.08) +

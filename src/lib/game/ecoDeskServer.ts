@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   ECO_ROLES,
@@ -13,7 +14,7 @@ import {
   scenarioForRound,
 } from "@/lib/game/ecoDesk";
 
-const ROOM_PRESENCE_TIMEOUT_MS = 12_000;
+const ROOM_PRESENCE_TIMEOUT_MS = 90_000;
 
 function asEnvironmentState(room: {
   treasury: number;
@@ -37,37 +38,59 @@ function presenceCutoff() {
   return new Date(Date.now() - ROOM_PRESENCE_TIMEOUT_MS);
 }
 
-// Clears offline seats and removes rooms with no active players.
+// Deletes rooms whose claimed seats have all exceeded the presence timeout.
 async function pruneInactiveGameRooms() {
   const cutoff = presenceCutoff();
-  const staleSeats = await prisma.gameRoomSeat.findMany({
-    where: { lastSeenAt: { lt: cutoff } },
-    select: { id: true, roomId: true },
-  });
-
-  if (staleSeats.length > 0) {
-    await prisma.gameRoomSeat.deleteMany({
-      where: { id: { in: staleSeats.map((seat) => seat.id) } },
-    });
-  }
-
-  const candidateRoomIds = Array.from(
-    new Set(staleSeats.map((seat) => seat.roomId))
-  );
-  if (candidateRoomIds.length === 0) return;
-
   const rooms = await prisma.gameRoom.findMany({
-    where: { id: { in: candidateRoomIds } },
-    include: { seats: true },
+    where: { status: { not: "finished" } },
+    select: {
+      id: true,
+      seats: {
+        select: { lastSeenAt: true },
+      },
+    },
   });
-  const emptyRoomIds = rooms
-    .filter((room) => room.seats.length === 0)
+
+  const staleRoomIds = rooms
+    .filter(
+      (room) =>
+        room.seats.length > 0 &&
+        room.seats.every((seat) => seat.lastSeenAt < cutoff)
+    )
     .map((room) => room.id);
 
-  if (emptyRoomIds.length > 0) {
+  if (staleRoomIds.length > 0) {
     await prisma.gameRoom.deleteMany({
-      where: { id: { in: emptyRoomIds } },
+      where: { id: { in: staleRoomIds } },
     });
+  }
+}
+
+async function touchRoomSeat(
+  tx: Prisma.TransactionClient,
+  roomId: string,
+  userId: string
+) {
+  await tx.gameRoomSeat.updateMany({
+    where: { roomId, userId },
+    data: { lastSeenAt: new Date() },
+  });
+}
+
+// Refreshes one claimed seat without loading the room state payload.
+export async function touchRoomPresence(params: {
+  roomId: string;
+  userId: string;
+}) {
+  await pruneInactiveGameRooms();
+
+  const result = await prisma.gameRoomSeat.updateMany({
+    where: { roomId: params.roomId, userId: params.userId },
+    data: { lastSeenAt: new Date() },
+  });
+
+  if (result.count === 0) {
+    throw new Error("Seat not found");
   }
 }
 
@@ -80,7 +103,7 @@ async function ensureUniqueRoomCode() {
   throw new Error("Failed to allocate room code");
 }
 
-// Creates a numbered room and claims the first role seat.
+// Creates a numbered room with the creator bound to the opening role.
 export async function createEcoDeskRoom(params: {
   userId: string;
   role: EcoRole;
@@ -112,7 +135,7 @@ export async function createEcoDeskRoom(params: {
   });
 }
 
-// Lists active rooms with open seats for the lobby registry.
+// Lists active rooms together with any never-claimed roles.
 export async function listActiveGameRooms(userId: string) {
   await pruneInactiveGameRooms();
 
@@ -153,7 +176,7 @@ export async function listActiveGameRooms(userId: string) {
   });
 }
 
-// Claims or moves a player's role seat inside an active room.
+// Claims one unbound role seat or reopens the player's existing seat.
 export async function joinEcoDeskRoom(params: {
   roomId: string;
   userId: string;
@@ -179,26 +202,17 @@ export async function joinEcoDeskRoom(params: {
     }
 
     if (existingSeat) {
+      if (existingSeat.role !== params.role) {
+        throw new Error("Role already locked for this room");
+      }
+
       await tx.gameRoomSeat.update({
         where: { id: existingSeat.id },
         data: {
-          role: params.role,
           ready: room.status === "active",
           lastSeenAt: new Date(),
         },
       });
-
-      if (existingSeat.role !== params.role) {
-        await tx.gameRoomMessage.create({
-          data: {
-            roomId: room.id,
-            userId: params.userId,
-            userName: params.userName,
-            kind: "system",
-            body: `${params.userName} moved from ${existingSeat.role.toUpperCase()} to ${params.role.toUpperCase()}.`,
-          },
-        });
-      }
 
       return room;
     }
@@ -243,7 +257,7 @@ export async function setSeatReady(params: {
 
     await tx.gameRoomSeat.update({
       where: { id: seat.id },
-      data: { ready: params.ready },
+      data: { ready: params.ready, lastSeenAt: new Date() },
     });
 
     const refreshedSeats = seat.room.seats.map((entry) =>
@@ -324,6 +338,8 @@ export async function submitRoomAction(params: {
       },
     });
 
+    await touchRoomSeat(tx, params.roomId, params.userId);
+
     await tx.gameRoomMessage.create({
       data: {
         roomId: params.roomId,
@@ -347,15 +363,19 @@ export async function postRoomMessage(params: {
   body: string;
   metadata?: string;
 }) {
-  return prisma.gameRoomMessage.create({
-    data: {
-      roomId: params.roomId,
-      userId: params.userId,
-      userName: params.userName,
-      kind: params.kind,
-      body: params.body,
-      metadata: params.metadata ?? "{}",
-    },
+  return prisma.$transaction(async (tx) => {
+    await touchRoomSeat(tx, params.roomId, params.userId);
+
+    return tx.gameRoomMessage.create({
+      data: {
+        roomId: params.roomId,
+        userId: params.userId,
+        userName: params.userName,
+        kind: params.kind,
+        body: params.body,
+        metadata: params.metadata ?? "{}",
+      },
+    });
   });
 }
 
